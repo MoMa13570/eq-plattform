@@ -6,7 +6,7 @@ title: EQ Plattform
 
 Willkommen zur offenen Hardware-Plattform für [kurze Beschreibung].
 
-![EQ Plattform Frontansicht](https://github.com/MoMa13570/eq-plattform/tree/main/images/EQ-Plattform.png)
+![EQ Plattform Frontansicht](https://github.com/MoMa13570/eq-plattform/blob/main/images/EQ-Plattform.png)
 
 ## Über das Projekt
 
