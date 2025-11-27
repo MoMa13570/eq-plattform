@@ -1,6 +1,35 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2867
-\cocoatextscaling0\cocoaplatform0{\fonttbl}
-{\colortbl;\red255\green255\blue255;}
-{\*\expandedcolortbl;;}
-\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
-}
+---
+title: EQ Plattform
+---
+
+# EQ Plattform
+
+Willkommen zur offenen Hardware-Plattform für [kurze Beschreibung].
+
+![EQ Plattform Frontansicht](./bilder/front.jpg)
+
+## Über das Projekt
+
+Diese Plattform soll es ermöglichen, ...
+
+- Open-Source-Hardware
+- Fertige Gerber-Dateien für die PCB-Fertigung
+- Mechanik als STEP-Dateien
+- Vollständige Stückliste und Aufbauanleitung
+
+## Dateien herunterladen
+
+- [Gerber-Daten](https://github.com/DEIN_GITHUB_NAME/DEIN_REPO_NAME/tree/main/hardware/pcb/gerber)
+- [STEP-Dateien](https://github.com/DEIN_GITHUB_NAME/DEIN_REPO_NAME/tree/main/hardware/mechanical)
+- [Stückliste](https://github.com/DEIN_GITHUB_NAME/DEIN_REPO_NAME/tree/main/bom)
+- [Bauanleitung](https://github.com/DEIN_GITHUB_NAME/DEIN_REPO_NAME/tree/main/assembly)
+
+## Aufbau
+
+Eine Schritt-für-Schritt-Anleitung findest du unter:
+
+- [Aufbauanleitung](./aufbau.md)
+
+---
+
+_Project hosted on [GitHub](https://github.com/DEIN_GITHUB_NAME/DEIN_REPO_NAME)._
