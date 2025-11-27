@@ -1,17 +1,8 @@
 # EQ Plattform
 
-Willkommen zur offenen Hardware-Plattform für [kurze Beschreibung].
-
 ![EQ Plattform Frontansicht](https://github.com/MoMa13570/eq-plattform/blob/main/images/EQ-Plattform.png)
 
 ## Über das Projekt
-
-Diese Plattform soll es ermöglichen, ...
-
-- Open-Source-Hardware
-- Fertige Gerber-Dateien für die PCB-Fertigung
-- Mechanik als STEP-Dateien
-- Vollständige Stückliste und Aufbauanleitung
 
 ## Dateien herunterladen
 
