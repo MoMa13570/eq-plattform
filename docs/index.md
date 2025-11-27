@@ -1,7 +1,3 @@
----
-title: EQ Plattform
----
-
 # EQ Plattform
 
 Willkommen zur offenen Hardware-Plattform für [kurze Beschreibung].
