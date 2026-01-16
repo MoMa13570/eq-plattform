@@ -11,7 +11,7 @@
 
 - `hardware/mechanical/` – STEP-Dateien der Mechanik
 - `hardware/pcb/gerber/` – Gerberdaten für die Leiterplattenfertigung
-- `bom/` – Stücklisten (Teilelisten) für Bestellungen
+- `BOM/` – Stücklisten (Teilelisten) für Bestellungen
 - `assembly/` – Bauanleitungen und Hinweise zum Zusammenbau
 - `docs/` – Dateien für die Projekt-Website (GitHub Pages)
 
