@@ -28,7 +28,7 @@ Alle relevanten Dateien für den Nachbau und die Weiterentwicklung befinden sich
   https://github.com/MoMa13570/eq-plattform/tree/main/hardware/mechanical
 
 - **Stückliste (BOM)**  
- [BOM](./Teileliste_DM EQ Plattform.csv)
+ [BOM](./BOM/Teileliste_DM EQ Plattform.csv)
 
 - **Bauanleitung & Assembly**  
   https://github.com/MoMa13570/eq-plattform/tree/main/assembly
