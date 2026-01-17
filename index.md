@@ -1,6 +1,6 @@
 # EQ Plattform
 
-![EQ Plattform Frontansicht](https://github.com/MoMa13570/eq-plattform/blob/main/images/EQ-Plattform.png)
+![EQ Plattform Frontansicht](images/EQ-Plattform.png)
 
 ## Über das Projekt
 
@@ -22,25 +22,25 @@ Das Projekt verfolgt das Ziel, eine klar strukturierte, reproduzierbare und erwe
 Alle relevanten Dateien für den Nachbau und die Weiterentwicklung befinden sich im GitHub-Repository:
 
 - **Gerber-Daten (PCB-Fertigung)**  
-  [Platine](../hardware/circuitboard/)
+  [Platine](hardware/circuitboard/)
 
 - **STEP-Dateien (Mechanik & Gehäuse)**  
-  [meschanische Hardware](../hardware/mechanical/)
+  [meschanische Hardware](hardware/mechanical/)
 
 - **Stückliste (BOM)**  
- [BOM](../BOM/Teileliste_DM%20EQ%20Plattform.csv)
+ [BOM](BOM/Teileliste_DM%20EQ%20Plattform.csv)
 
 - **Bauanleitung**  
-  [Aufbauanleitung](../Assembly/)
+  [Aufbauanleitung](Assembly/)
 
 - **Software**  
-  [Software](../software/)
+  [Software](software/)
 
 ## Aufbau
 
 Eine detaillierte Schritt-für-Schritt-Anleitung für den mechanischen und elektronischen Aufbau findest du hier:
 
-- [Aufbauanleitung](./aufbau.md)
+- [Aufbauanleitung](aufbau.md)
 
 ## Mitmachen & Weiterentwicklung
 
