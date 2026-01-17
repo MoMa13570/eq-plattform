@@ -12,17 +12,17 @@ Das Projekt verfolgt das Ziel, eine klar strukturierte, reproduzierbare und erwe
 ## Funktionen & Eigenschaften
 
 - Modularer mechanischer Aufbau  
-- Open-Source-Hardware  
+- Open-Source-Hardware und Software
 - Frei verfügbare Schaltpläne und Fertigungsdaten  
-- Nachbaubar mit Standard-Bauteilen  
-- Geeignet für Lehre, Forschung und Prototyping  
+- zum Teil Nachbaubar mit Standard-Bauteilen 
+- Geeignet für Lehre
 
 ## Dateien herunterladen
 
 Alle relevanten Dateien für den Nachbau und die Weiterentwicklung befinden sich im GitHub-Repository:
 
 - **Gerber-Daten (PCB-Fertigung)**  
-  https://github.com/MoMa13570/eq-plattform/tree/main/hardware/pcb/gerber
+  [Platine](../hardware/circuitboard/)
 
 - **STEP-Dateien (Mechanik & Gehäuse)**  
   [meschanische Hardware](../hardware/mechanical/)
@@ -30,8 +30,8 @@ Alle relevanten Dateien für den Nachbau und die Weiterentwicklung befinden sich
 - **Stückliste (BOM)**  
  [BOM](../BOM/Teileliste_DM%20EQ%20Plattform.csv)
 
-- **Bauanleitung & Assembly**  
-  https://github.com/MoMa13570/eq-plattform/tree/main/assembly
+- **Bauanleitung**  
+  [Aufbauanleitung](../Assembly/)
 
 ## Aufbau
 
