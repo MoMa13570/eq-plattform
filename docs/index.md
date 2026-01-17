@@ -25,7 +25,7 @@ Alle relevanten Dateien für den Nachbau und die Weiterentwicklung befinden sich
   https://github.com/MoMa13570/eq-plattform/tree/main/hardware/pcb/gerber
 
 - **STEP-Dateien (Mechanik & Gehäuse)**  
-  https://github.com/MoMa13570/eq-plattform/tree/main/hardware/mechanical
+  [meschanische Hardware](../hardware/mechanical/)
 
 - **Stückliste (BOM)**  
  [BOM](../BOM/Teileliste_DM%20EQ%20Plattform.csv)
