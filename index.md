@@ -7,6 +7,9 @@
 Die **EQ Plattform** st zum Nachführen von Dobson teleskopen, um die visuelle Beobachtung zu verbessern oder fotogarfisch nutzbar zu machen.
 
 Unsere EQ-Plattform ist vergleihsweise massiv gebaut, damit sie auch schwere Dobson tragen kann. 
+Für den Antrieb gibt es 2 Möglichkeiten:
+- mit einem EQ2 Motor Kit
+- mit einer PCB und einem Nema17 Motor
 
 ## Funktionen & Eigenschaften
 
