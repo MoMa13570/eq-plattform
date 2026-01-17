@@ -4,25 +4,18 @@
 
 ## Über das Projekt
 
-Die **EQ Plattform** ist eine modulare, offene Hardware- und Softwareplattform zur Entwicklung, Erprobung und Demonstration von Elektronik- und Embedded-Systemen.
+Die **EQ Plattform** st zum Nachführen von Dobson teleskopen, um die visuelle Beobachtung zu verbessern oder fotogarfisch nutzbar zu machen.
 
-Sie wurde entwickelt, um eine **strukturierte und reproduzierbare Grundlage** für:
-- Prototyping
-- Lehre und Ausbildung
-- Projektarbeiten
-- experimentelle Hardware-Aufbauten
-
-bereitzustellen.  
-Der Fokus liegt auf **Nachvollziehbarkeit**, **Erweiterbarkeit** und einer klaren Trennung zwischen Mechanik, Elektronik und Software.
+Unsere EQ-Plattform ist vergleihsweise massiv gebaut, damit sie auch schwere Dobson tragen kann. 
 
 ## Funktionen & Eigenschaften
 
 - Modularer mechanischer Aufbau mit austauschbaren Komponenten  
-- Open-Source-Hardware und -Software  
+- Open-Source-Hardware und Software  
 - Frei verfügbare Schaltpläne, Layouts und Fertigungsdaten  
-- Teilweise Nachbau mit Standard-Bauteilen möglich  
+- Teilweise Nachbau mit handelsüblichen Bauteilen möglich  
 - Klare Dokumentation für Aufbau und Erweiterung  
-- Geeignet für Ausbildung, Lehre und technische Demonstrationen  
+- Geeignet für Schulen, Sternwarten oder Privatanwender
 
 ## Dateien & Ressourcen
 
