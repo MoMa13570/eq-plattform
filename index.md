@@ -22,19 +22,19 @@ Das Projekt verfolgt das Ziel, eine klar strukturierte, reproduzierbare und erwe
 Alle relevanten Dateien für den Nachbau und die Weiterentwicklung befinden sich im GitHub-Repository:
 
 - **Gerber-Daten (PCB-Fertigung)**  
-  [Platine](hardware/circuitboard/)
+  [Platine](hardware/circuitboard)
 
 - **STEP-Dateien (Mechanik & Gehäuse)**  
-  [meschanische Hardware](hardware/mechanical/)
+  [meschanische Hardware](hardware/mechanical)
 
 - **Stückliste (BOM)**  
  [BOM](BOM/Teileliste_DM%20EQ%20Plattform.csv)
 
 - **Bauanleitung**  
-  [Aufbauanleitung](Assembly/)
+  [Aufbauanleitung](Assembly)
 
 - **Software**  
-  [Software](software/)
+  [Software](software)
 
 ## Aufbau
 
