@@ -22,25 +22,25 @@ Das Projekt verfolgt das Ziel, eine klar strukturierte, reproduzierbare und erwe
 Alle relevanten Dateien für den Nachbau und die Weiterentwicklung befinden sich im GitHub-Repository:
 
 - **Gerber-Daten (PCB-Fertigung)**  
-  [Platine](hardware/circuitboard)
+  [Platine](https://github.com/MoMa13570/eq-plattform/tree/main/hardware/circuitboard)
 
 - **STEP-Dateien (Mechanik & Gehäuse)**  
-  [meschanische Hardware](hardware/mechanical)
+  [meschanische Hardware](https://github.com/MoMa13570/eq-plattform/tree/main/hardware/mechanical)
 
 - **Stückliste (BOM)**  
  [BOM](BOM/Teileliste_DM%20EQ%20Plattform.csv)
 
 - **Bauanleitung**  
-  [Aufbauanleitung](Assembly)
+  [Aufbauanleitung](https://github.com/MoMa13570/eq-plattform/tree/main/Assembly)
 
 - **Software**  
-  [Software](software)
+  [Software](https://github.com/MoMa13570/eq-plattform/tree/main/software)
 
 ## Aufbau
 
 Eine detaillierte Schritt-für-Schritt-Anleitung für den mechanischen und elektronischen Aufbau findest du hier:
 
-- [Aufbauanleitung](aufbau.md)
+- [Aufbauanleitung](https://github.com/MoMa13570/eq-plattform/tree/main/Assembly)
 
 ## Mitmachen & Weiterentwicklung
 
