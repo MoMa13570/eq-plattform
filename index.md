@@ -22,11 +22,11 @@ Unsere EQ-Plattform ist vergleihsweise massiv gebaut, damit sie auch schwere Dob
 Alle relevanten Dateien für den Nachbau und die Weiterentwicklung sind im GitHub-Repository organisiert und frei zugänglich.
 
 - **Gerber-Daten (PCB-Fertigung)**  
-  Leiterplatten-Layouts und Fertigungsdaten  
+  Leiterplatten-Layouts, Fertigungsdaten und Gehäuse
   [Platine](https://github.com/MoMa13570/eq-plattform/tree/main/hardware/circuitboard)
 
-- **STEP-Dateien (Mechanik & Gehäuse)**  
-  CAD-Daten für mechanische Bauteile und Gehäuse  
+- **STEP-Dateien (Mechanik)**  
+  CAD-Daten für mechanische Bauteile  
   [Mechanische Hardware](https://github.com/MoMa13570/eq-plattform/tree/main/hardware/mechanical)
 
 - **Stückliste (BOM)**  
@@ -38,7 +38,7 @@ Alle relevanten Dateien für den Nachbau und die Weiterentwicklung sind im GitHu
   [Assembly](https://github.com/MoMa13570/eq-plattform/tree/main/Assembly)
 
 - **Software**  
-  Firmware, Tools und begleitende Software  
+  Firmware für Arduino
   [Software](https://github.com/MoMa13570/eq-plattform/tree/main/software)
 
 ## Aufbau
