@@ -4,50 +4,75 @@
 
 ## Über das Projekt
 
-Die **EQ Plattform** ist eine modulare, offene Hardware-Plattform zur Entwicklung, Erprobung und Integration von Elektronik- und Embedded-Systemen.  
-Sie dient als flexible Grundlage für Prototyping, Ausbildung und experimentelle Aufbauten.
+Die **EQ Plattform** ist eine modulare, offene Hardware- und Softwareplattform zur Entwicklung, Erprobung und Demonstration von Elektronik- und Embedded-Systemen.
 
-Das Projekt verfolgt das Ziel, eine klar strukturierte, reproduzierbare und erweiterbare Plattform bereitzustellen, die sowohl für Einsteiger als auch für fortgeschrittene Anwender geeignet ist.
+Sie wurde entwickelt, um eine **strukturierte und reproduzierbare Grundlage** für:
+- Prototyping
+- Lehre und Ausbildung
+- Projektarbeiten
+- experimentelle Hardware-Aufbauten
+
+bereitzustellen.  
+Der Fokus liegt auf **Nachvollziehbarkeit**, **Erweiterbarkeit** und einer klaren Trennung zwischen Mechanik, Elektronik und Software.
 
 ## Funktionen & Eigenschaften
 
-- Modularer mechanischer Aufbau  
-- Open-Source-Hardware und Software
-- Frei verfügbare Schaltpläne und Fertigungsdaten  
-- zum Teil Nachbaubar mit Standard-Bauteilen 
-- Geeignet für Lehre
+- Modularer mechanischer Aufbau mit austauschbaren Komponenten  
+- Open-Source-Hardware und -Software  
+- Frei verfügbare Schaltpläne, Layouts und Fertigungsdaten  
+- Teilweise Nachbau mit Standard-Bauteilen möglich  
+- Klare Dokumentation für Aufbau und Erweiterung  
+- Geeignet für Ausbildung, Lehre und technische Demonstrationen  
 
-## Dateien herunterladen
+## Dateien & Ressourcen
 
-Alle relevanten Dateien für den Nachbau und die Weiterentwicklung befinden sich im GitHub-Repository:
+Alle relevanten Dateien für den Nachbau und die Weiterentwicklung sind im GitHub-Repository organisiert und frei zugänglich.
 
 - **Gerber-Daten (PCB-Fertigung)**  
+  Leiterplatten-Layouts und Fertigungsdaten  
   [Platine](https://github.com/MoMa13570/eq-plattform/tree/main/hardware/circuitboard)
 
 - **STEP-Dateien (Mechanik & Gehäuse)**  
-  [meschanische Hardware](https://github.com/MoMa13570/eq-plattform/tree/main/hardware/mechanical)
+  CAD-Daten für mechanische Bauteile und Gehäuse  
+  [Mechanische Hardware](https://github.com/MoMa13570/eq-plattform/tree/main/hardware/mechanical)
 
 - **Stückliste (BOM)**  
- [BOM](BOM/Teileliste_DM%20EQ%20Plattform.csv)
+  Übersicht aller benötigten Bauteile  
+  [BOM (CSV)](BOM/Teileliste_DM%20EQ%20Plattform.csv)
 
-- **Bauanleitung**  
-  [Aufbauanleitung](https://github.com/MoMa13570/eq-plattform/tree/main/Assembly)
+- **Bauanleitung / Assembly**  
+  Mechanischer und elektrischer Aufbau  
+  [Assembly](https://github.com/MoMa13570/eq-plattform/tree/main/Assembly)
 
 - **Software**  
+  Firmware, Tools und begleitende Software  
   [Software](https://github.com/MoMa13570/eq-plattform/tree/main/software)
 
 ## Aufbau
 
-Eine detaillierte Schritt-für-Schritt-Anleitung für den mechanischen und elektronischen Aufbau findest du hier:
+Der Aufbau der EQ Plattform erfolgt modular und ist in der Bauanleitung detailliert beschrieben.  
+Die Dokumentation umfasst:
 
-- [Aufbauanleitung](https://github.com/MoMa13570/eq-plattform/tree/main/Assembly)
+- mechanischen Aufbau  
+- Bestückung der Leiterplatten  
+- grundlegende Inbetriebnahme  
+
+➡️ **Zur Aufbauanleitung:**  
+[Assembly / Bauanleitung](https://github.com/MoMa13570/eq-plattform/tree/main/Assembly)
 
 ## Mitmachen & Weiterentwicklung
 
-Beiträge zum Projekt sind ausdrücklich willkommen.  
-Verbesserungen, Erweiterungen oder Fehlerkorrekturen können gerne über Issues oder Pull Requests eingebracht werden.
+Die EQ Plattform ist ein offenes Projekt und lebt von Weiterentwicklung und Feedback.  
+Beiträge sind ausdrücklich willkommen, z. B.:
+
+- Verbesserung der Dokumentation  
+- Erweiterungen der Hardware oder Software  
+- Fehlerkorrekturen  
+- neue Module oder Anwendungsbeispiele  
+
+Beiträge können über **Issues** oder **Pull Requests** im GitHub-Repository eingebracht werden.
 
 ---
 
-Projekt-Repository:  
+**Projekt-Repository:**  
 https://github.com/MoMa13570/eq-plattform
