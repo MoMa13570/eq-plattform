@@ -33,6 +33,9 @@ Alle relevanten Dateien für den Nachbau und die Weiterentwicklung befinden sich
 - **Bauanleitung**  
   [Aufbauanleitung](../Assembly/)
 
+- **Software**  
+  [Software](../software/)
+
 ## Aufbau
 
 Eine detaillierte Schritt-für-Schritt-Anleitung für den mechanischen und elektronischen Aufbau findest du hier:
