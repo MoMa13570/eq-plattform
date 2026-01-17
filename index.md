@@ -12,7 +12,7 @@ Unsere EQ-Plattform ist vergleihsweise massiv gebaut, damit sie auch schwere Dob
 
 - Modularer mechanischer Aufbau mit austauschbaren Komponenten  
 - Open-Source-Hardware und Software  
-- Frei verfügbare Schaltpläne, Layouts und Fertigungsdaten  
+- Frei verfügbare Fertigungsdaten, Schaltpläne und Layouts 
 - Teilweise Nachbau mit handelsüblichen Bauteilen möglich  
 - Klare Dokumentation für Aufbau und Erweiterung  
 - Geeignet für Schulen, Sternwarten oder Privatanwender
@@ -21,9 +21,7 @@ Unsere EQ-Plattform ist vergleihsweise massiv gebaut, damit sie auch schwere Dob
 
 Alle relevanten Dateien für den Nachbau und die Weiterentwicklung sind im GitHub-Repository organisiert und frei zugänglich.
 
-- **Gerber-Daten (PCB-Fertigung)**  
-  Leiterplatten-Layouts, Fertigungsdaten und Gehäuse
-  [Platine](https://github.com/MoMa13570/eq-plattform/tree/main/hardware/circuitboard)
+
 
 - **STEP-Dateien (Mechanik)**  
   CAD-Daten für mechanische Bauteile  
@@ -37,6 +35,12 @@ Alle relevanten Dateien für den Nachbau und die Weiterentwicklung sind im GitHu
   Mechanischer und elektrischer Aufbau  
   [Assembly](https://github.com/MoMa13570/eq-plattform/tree/main/Assembly)
 
+## optional:
+
+- **Gerber-Daten (PCB-Fertigung)**  
+  Leiterplatten-Layouts, Fertigungsdaten und Gehäuse
+  [Platine](https://github.com/MoMa13570/eq-plattform/tree/main/hardware/circuitboard)  
+
 - **Software**  
   Firmware für Arduino
   [Software](https://github.com/MoMa13570/eq-plattform/tree/main/software)
@@ -47,7 +51,7 @@ Der Aufbau der EQ Plattform erfolgt modular und ist in der Bauanleitung detailli
 Die Dokumentation umfasst:
 
 - mechanischen Aufbau  
-- Bestückung der Leiterplatten  
+- Bestückung der Leiterplatten (optional) 
 - grundlegende Inbetriebnahme  
 
 ➡️ **Zur Aufbauanleitung:**  
