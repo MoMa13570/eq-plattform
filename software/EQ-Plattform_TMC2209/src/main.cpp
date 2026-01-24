@@ -51,6 +51,10 @@ const float SPEED_MULT = 1.0f;
 // --- Runtime values ---
 float BASE_USPS = 0.0f; // µSteps/s bei Poti-Mitte
 
+// If the potentiometer is missing/floating, we fall back to a fixed trim (1.00 = 100%).
+const float TRIM_FALLBACK = 1.00f;
+static bool g_pot_ok = true;   // updated by readTrimFactor()
+
 // Trim
 const float TRIM_MIN = 0.80f;
 const float TRIM_MAX = 1.20f;
@@ -64,13 +68,36 @@ unsigned long stepIntervalMicros = 1000000UL;
 static inline float clampf(float x, float a, float b) {
   return (x < a) ? a : (x > b) ? b : x;
 }
+
+void applySpeedToInterval(float usps);
 float readTrimFactor() {
-  // 8x average of ADC (0..1023)
+  // 8x average of ADC (0..1023) + min/max to detect floating input
   uint32_t acc = 0;
+  int mn = 1023;
+  int mx = 0;
   for (int i = 0; i < 8; ++i) {
-    acc += analogRead(PIN_POT);
+    int v = analogRead(PIN_POT);
+    acc += (uint32_t)v;
+    if (v < mn) mn = v;
+    if (v > mx) mx = v;
   }
   float raw = acc / 8.0f; // 0..1023
+
+  // If the pot is not connected, A0 often floats and readings jump around.
+  // Detect this by looking at the spread across samples.
+  const int FLOAT_SPREAD = 60; // counts; tune if needed
+  if ((mx - mn) > FLOAT_SPREAD) {
+    g_pot_ok = false;
+    return TRIM_FALLBACK;
+  }
+
+  // Also treat extreme rails as "no usable trim" (wiring error / short)
+  if (raw < 2.0f || raw > 1021.0f) {
+    g_pot_ok = false;
+    return TRIM_FALLBACK;
+  }
+
+  g_pot_ok = true;
 
   // Deadband around center to avoid jitter
   const int CENTER_ADC = 512;  // adjust (e.g. 505..520)
@@ -83,13 +110,8 @@ float readTrimFactor() {
   float t = raw / 1023.0f; // 0..1
   return TRIM_MIN + (TRIM_MAX - TRIM_MIN) * t;
 }
-void applySpeedToInterval(float usps) {
-  if (usps < 0.0001f) usps = 0.0001f;
-  stepIntervalMicros = (unsigned long)(1000000.0f / usps);
-}
-
 // --- OLED helper ---
-void updateOled(bool tracking, bool forward, float smoothedTrim, float targetUsps) {
+void updateOled(bool tracking, bool forward, float smoothedTrim, float targetUsps, bool potOk) {
   // Compute rev/h from effective speed
   float revPerHour = (targetUsps * 3600.0f) / (STEPS_PER_REV * MICROSTEPS);
 
@@ -108,7 +130,13 @@ void updateOled(bool tracking, bool forward, float smoothedTrim, float targetUsp
 
   // Trim as percentage (rounded)
   int pct = (int)(smoothedTrim * 100.0f + 0.5f);
-  u8g2.setCursor(10, 45); u8g2.print(F("Trim: ")); u8g2.print(pct); u8g2.print('%');
+  u8g2.setCursor(10, 45);
+  u8g2.print(F("Trim: "));
+  u8g2.print(pct);
+  u8g2.print('%');
+  if (!potOk) {
+    u8g2.print(F(" FIX"));
+  }
 
   // rev/h (two decimals)
   u8g2.setCursor(10, 55); u8g2.print(F("rev/h: "));
@@ -288,7 +316,7 @@ void loop() {
   float targetUsps = BASE_USPS * smoothedTrim;
   applySpeedToInterval(targetUsps);
 
-  updateOled(tracking, forward, smoothedTrim, targetUsps);
+  updateOled(tracking, forward, smoothedTrim, targetUsps, g_pot_ok);
 
   // Debug output: trim factor and effective speed every 2 seconds
   static unsigned long lastPrint = 0;
@@ -316,4 +344,9 @@ void loop() {
       lastStepMicros = now;
     }
   }
+}
+
+void applySpeedToInterval(float usps) {
+  if (usps < 0.0001f) usps = 0.0001f;
+  stepIntervalMicros = (unsigned long)(1000000.0f / usps);
 }
