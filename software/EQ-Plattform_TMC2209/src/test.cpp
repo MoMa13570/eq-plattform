@@ -8,6 +8,10 @@ const int PIN_STEP = 2;
 const int PIN_DIR  = 3;
 const int PIN_EN   = 8;
 
+// 3-position direction switch (ON-OFF-ON)
+const int PIN_SW_LEFT  = 4;   // active LOW
+const int PIN_SW_RIGHT = 5;   // active LOW
+
 // UART (Single Wire via UART-Pin am BTT TMC2209 v1.3)
 const int PIN_TMC_RX = 6;   // Arduino RX
 const int PIN_TMC_TX = 7;   // Arduino TX (1k in Serie empfohlen)
@@ -32,6 +36,8 @@ void setup() {
   pinMode(PIN_STEP, OUTPUT);
   pinMode(PIN_DIR, OUTPUT);
   pinMode(PIN_EN, OUTPUT);
+  pinMode(PIN_SW_LEFT, INPUT_PULLUP);
+  pinMode(PIN_SW_RIGHT, INPUT_PULLUP);
 
   digitalWrite(PIN_EN, HIGH); // disable driver initially
   digitalWrite(PIN_DIR, LOW);
@@ -63,18 +69,26 @@ void setup() {
 
 // -------------------- Loop --------------------
 void loop() {
-  // Rotate forward
-  digitalWrite(PIN_DIR, LOW);
-  stepMotor(800, 3000);   // 800 steps/s, 3 seconds
+  bool left  = (digitalRead(PIN_SW_LEFT)  == LOW);
+  bool right = (digitalRead(PIN_SW_RIGHT) == LOW);
 
-  delay(1000);
+  // Middle position or invalid state: motor off
+  if ((left && right) || (!left && !right)) {
+    digitalWrite(PIN_EN, HIGH);   // disable driver
+    return;
+  }
 
-  // Rotate backward
-  Serial.println(F("Reverse direction"));
-  digitalWrite(PIN_DIR, HIGH);
-  stepMotor(800, 3000);
+  // Enable driver
+  digitalWrite(PIN_EN, LOW);
 
-  delay(2000);
+  if (left) {
+    digitalWrite(PIN_DIR, LOW);   // rotate left
+  } else if (right) {
+    digitalWrite(PIN_DIR, HIGH);  // rotate right
+  }
+
+  // step while switch is held
+  stepMotor(600, 20);  // small time slice for responsive stop
 }
 
 // -------------------- Step helper --------------------
