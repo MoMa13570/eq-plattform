@@ -1,0 +1,51 @@
+# EQ-Platform Roller-Drive (Arduino UNO + A4988 + NEMA17)
+
+Steuerung einer EQ-Plattform (Rollenantrieb mit Ø18 mm) direkt über einen Arduino UNO und A4988 Treiber.  
+Geschwindigkeit entspricht der Sternzeit, berechnet aus der Geometrie (Pivot → Kontaktpunkt).
+
+---
+
+## Hardware
+
+- **Arduino UNO**
+- **A4988 Stepper-Treiber**  
+  - VMOT: 12 V (mit 100 µF Elko nahe am Treiber)  
+  - GND: gemeinsam mit Arduino GND  
+  - RST + SLP → +5 V  
+  - MS1, MS2, MS3 → +5 V (→ 1/16 Microsteps)  
+- **NEMA17 Schrittmotor** (200 Steps/U)
+- **Rolle Ø18 mm** (r = 9 mm), direkt auf Motorwelle
+- **Mechanik**: Abstand Pivot → Kontaktlinie: `R = 572,561 mm`
+- **Poti 10 kΩ** (Feintrimm ±20 %)
+- **2 Kippschalter (SPDT, 3 Pins)**  
+  - **Tracking an/aus** → D4  
+  - **Richtung vor/rück** → D5
+
+---
+
+## Pinbelegung
+
+| Arduino | A4988 | Funktion                     |
+|---------|-------|------------------------------|
+| D2      | STEP  | Schrittimpuls                |
+| D3      | DIR   | Richtung                     |
+| D8      | EN    | Treiber aktiv/inaktiv        |
+| D4      | –     | Tracking-Schalter (SPDT)     |
+| D5      | –     | Richtungs-Schalter (SPDT)    |
+| A0      | –     | Poti-Trimm                   |
+| 5 V     | VDD   | A4988-Logik, Poti, Schalter  |
+| GND     | GND   | alles gemeinsam               |
+| VMOT    | 12 V  | Motorversorgung              |
+
+---
+
+## Software (PlatformIO)
+
+`platformio.ini`:
+
+```ini
+[env:uno]
+platform = atmelavr
+board = nanoatmega328
+framework = arduino
+monitor_speed = 115200
