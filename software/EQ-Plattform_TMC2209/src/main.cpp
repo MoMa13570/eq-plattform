@@ -2,8 +2,15 @@
 #include <Wire.h>
 #include <U8g2lib.h>
 
+#include <TMCStepper.h>
+#include <SoftwareSerial.h>
+
 // OLED: 128x64 I2C SSD1306 (U8g2 full buffer mode)
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
+
+// --- TMC2209 (UART configured, still STEP/DIR driven) ---
+static constexpr float R_SENSE = 0.11f;      // common value on many SilentStepStick boards (verify on your module)
+static constexpr uint8_t TMC_ADDR = 0;       // MS1/MS2 address (0..3), usually 0
 
 // --- Pins ---
 const int PIN_STEP  = 2;
@@ -13,11 +20,18 @@ const int PIN_TRK   = 4;              // Tracking switch: COM->D4, left->GND, ri
 const int PIN_DIRSW = 5;              // Direction switch: COM->D5, left->GND, right->+5V
 const int PIN_POT   = A0;             // 10k Poti
 
+// --- TMC2209 UART (Nano uses SoftwareSerial) ---
+const int PIN_TMC_RX = 6;             // Arduino RX  <- TMC2209 UART pin
+const int PIN_TMC_TX = 7;             // Arduino TX  -> TMC2209 UART pin (recommend 1k in series)
+
+SoftwareSerial TMC_SERIAL(PIN_TMC_RX, PIN_TMC_TX); // RX, TX
+TMC2209Stepper driver(&TMC_SERIAL, R_SENSE, TMC_ADDR);
+
 #define DIR_LEFT_IS_FORWARD  true     // true = North, false = South
 
 // --- Mechanik/Geometrie ---
 const float STEPS_PER_REV = 200.0f;   // NEMA17
-const float MICROSTEPS    = 16.0f;    // A4988: MS1/MS2/MS3 = HIGH
+const float MICROSTEPS    = 16.0f;    // TMC2209 set via UART (driver.microsteps())
 const float ROLLER_R_MM   = 9.0f;     // Ø18 mm -> r=9 mm. Adjust to your shaft diameter!
 const float R_MM          = 572.561f; // Pivot->contact radius (mm). Adjust to your geometry! (distance center south bearing to center of arc)
 
@@ -126,6 +140,21 @@ void setup() {
   Serial.begin(115200);
   delay(100);
 
+  // --- TMC2209 UART init ---
+  TMC_SERIAL.begin(115200);
+
+  driver.begin();
+  driver.pdn_disable(true);        // enable UART control
+  driver.I_scale_analog(false);    // use internal current reference (ignore Vref pot)
+  driver.toff(4);                  // enable driver
+  driver.blank_time(24);
+  driver.rms_current(600);         // mA RMS (tune for your motor)
+  driver.microsteps((uint16_t)MICROSTEPS);
+  driver.intpol(true);             // interpolate to 256
+  driver.pwm_autoscale(true);      // stealthChop helper
+  driver.en_spreadCycle(false);    // false=stealthChop (quiet), true=spreadCycle (torque)
+  driver.TPOWERDOWN(10);
+
   BASE_USPS = (STEPS_PER_REV * MICROSTEPS / SIDEREAL_SEC) * (R_MM / ROLLER_R_MM);
 
   float uStepsPerHour = BASE_USPS * 3600.0f;
@@ -137,6 +166,8 @@ void setup() {
   Serial.print(F("Roller r (mm): ")); Serial.println(ROLLER_R_MM, 3);
   Serial.print(F("Steps/rev: ")); Serial.println(STEPS_PER_REV, 0);
   Serial.print(F("Microsteps: ")); Serial.println(MICROSTEPS, 0);
+  Serial.print(F("Driver: ")); Serial.println(F("TMC2209 (UART)"));
+  Serial.print(F("RMS current (mA): ")); Serial.println(600);
   Serial.print(F("Base rate (uSteps/s): ")); Serial.println(BASE_USPS, 3);
   Serial.print(F("Revolutions per hour: ")); Serial.println(revPerHour, 3);
   Serial.print(F("Minutes per revolution: ")); Serial.println(minutesPerRev, 2);
@@ -192,7 +223,8 @@ void loop() {
     lastTracking = tracking;
     lastTrackingChangeMs = nowMs;
   }
-  digitalWrite(PIN_EN, tracking ? LOW : HIGH); // LOW/GND=Driver active
+  // TMC2209 EN pin is typically active-low (same as A4988)
+  digitalWrite(PIN_EN, tracking ? LOW : HIGH); // LOW = Driver active
 
   bool forward = isForward();
   digitalWrite(PIN_DIR, forward ? HIGH : LOW);
