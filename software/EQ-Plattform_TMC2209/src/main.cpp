@@ -13,11 +13,17 @@ static constexpr float R_SENSE = 0.11f;      // common value on many SilentStepS
 static constexpr uint8_t TMC_ADDR = 0;       // MS1/MS2 address (0..3), usually 0
 
 // --- Pins ---
+// 3-position direction switch (ON-OFF-ON):
+// - Switch COMMON -> GND
+// - North contact  -> D5
+// - South contact  -> D4
+// Middle position leaves both contacts open => OFF
+const int PIN_DIR_N = 5;              // North contact (active LOW)
+const int PIN_DIR_S = 4;              // South contact (active LOW)
+
 const int PIN_STEP  = 2;
 const int PIN_DIR   = 3;
 const int PIN_EN    = 8;
-const int PIN_TRK   = 4;              // Tracking switch: COM->D4, left->GND, right->+5V
-const int PIN_DIRSW = 5;              // Direction switch: COM->D5, left->GND, right->+5V
 const int PIN_POT   = A0;             // 10k Poti
 
 // --- TMC2209 UART (Nano uses SoftwareSerial) ---
@@ -109,14 +115,34 @@ void updateOled(bool tracking, bool forward, float smoothedTrim, float targetUsp
   u8g2.sendBuffer();
 }
 
-bool isTrackingOn() {
-  pinMode(PIN_TRK, INPUT_PULLUP);              // SPDT delivers LOW/HIGH, use pull-up to avoid floating
-  return (digitalRead(PIN_TRK) == HIGH);        // left/GND=ON
-}
-bool isForward() {
-  pinMode(PIN_DIRSW, INPUT_PULLUP);
-  bool leftSelected = (digitalRead(PIN_DIRSW) == HIGH);
-  return DIR_LEFT_IS_FORWARD ? leftSelected : !leftSelected;
+struct DirState {
+  bool tracking;
+  bool forward; // true = North, false = South
+};
+
+DirState readDirState() {
+  pinMode(PIN_DIR_N, INPUT_PULLUP);
+  pinMode(PIN_DIR_S, INPUT_PULLUP);
+
+  bool northSelected = (digitalRead(PIN_DIR_N) == LOW);
+  bool southSelected = (digitalRead(PIN_DIR_S) == LOW);
+
+  // Middle position: neither contact connected -> OFF
+  if (!northSelected && !southSelected) {
+    return {false, true};
+  }
+
+  // Safety: if both are active, treat as OFF
+  if (northSelected && southSelected) {
+    return {false, true};
+  }
+
+  bool forward = northSelected; // north => forward
+  if (!DIR_LEFT_IS_FORWARD) {
+    forward = !forward;
+  }
+
+  return {true, forward};
 }
 
 void i2cScan() {
@@ -179,7 +205,9 @@ void setup() {
   pinMode(PIN_EN,   OUTPUT);
 
   digitalWrite(PIN_EN, HIGH);                // driver disabled at startup
-  digitalWrite(PIN_DIR, isForward() ? HIGH : LOW);
+
+  DirState st0 = readDirState();
+  digitalWrite(PIN_DIR, st0.forward ? HIGH : LOW);
 
   float usps = BASE_USPS * readTrimFactor();
   applySpeedToInterval(usps);
@@ -210,7 +238,8 @@ void setup() {
 }
 
 void loop() {
-  bool tracking = isTrackingOn();
+  DirState st = readDirState();
+  bool tracking = st.tracking;
   unsigned long nowMs = millis();
   static bool lastTracking = false;
   static unsigned long lastTrackingChangeMs = 0;
@@ -226,12 +255,12 @@ void loop() {
   // TMC2209 EN pin is typically active-low (same as A4988)
   digitalWrite(PIN_EN, tracking ? LOW : HIGH); // LOW = Driver active
 
-  bool forward = isForward();
+  bool forward = st.forward;
   digitalWrite(PIN_DIR, forward ? HIGH : LOW);
   static bool lastForward = false;
   static unsigned long lastDirChangeMs = 0;
   static unsigned long dirChangedAt = 0;
-  if (forward != lastForward && (nowMs - lastDirChangeMs) >= 2000) {
+  if (tracking && forward != lastForward && (nowMs - lastDirChangeMs) >= 2000) {
     if (forward) {
       Serial.println(F("Direction: North"));
     } else {
