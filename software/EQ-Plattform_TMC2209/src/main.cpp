@@ -5,8 +5,8 @@
 #include <TMCStepper.h>
 #include <SoftwareSerial.h>
 
-// OLED: 128x64 I2C SSD1306 (U8g2 full buffer mode)
-U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
+// OLED: 128x64 I2C SSD1306 (U8g2 page buffer mode -> MUCH lower SRAM on UNO)
+U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 
 // --- TMC2209 (UART configured, still STEP/DIR driven) ---
 static constexpr float R_SENSE = 0.11f;      // common value on many SilentStepStick boards (verify on your module)
@@ -26,7 +26,7 @@ const int PIN_DIR   = 3;
 const int PIN_EN    = 8;
 const int PIN_POT   = A0;             // 10k Poti
 
-// --- TMC2209 UART (Nano uses SoftwareSerial) ---
+// --- TMC2209 UART (UNO/Nano uses SoftwareSerial) ---
 const int PIN_TMC_RX = 6;             // Arduino RX  <- TMC2209 UART pin
 const int PIN_TMC_TX = 7;             // Arduino TX  -> TMC2209 UART pin (recommend 1k in series)
 
@@ -63,6 +63,9 @@ const float TRIM_MAX = 1.20f;
 const unsigned int STEP_PULSE_US = 3;
 unsigned long lastStepMicros     = 0;
 unsigned long stepIntervalMicros = 1000000UL;
+
+// Small shared buffer to avoid large stack frames in drawing code
+static char g_buf2[12];
 
 // Helpers
 static inline float clampf(float x, float a, float b) {
@@ -120,31 +123,32 @@ void updateOled(bool tracking, bool forward, float smoothedTrim, float targetUsp
   if (now - lastDraw < 500) return; // update every 500 ms max
   lastDraw = now;
 
-  u8g2.clearBuffer();
-  u8g2.setFont(u8g2_font_6x10_tf);
-  u8g2.setCursor(10, 10); u8g2.print(F("EQ Platform"));
-  u8g2.setCursor(10, 25); u8g2.print(F("Tracking: ")); u8g2.print(tracking ? F("ON") : F("OFF"));
-  u8g2.setCursor(10, 35);
-  u8g2.print(F("Direction: "));
-  u8g2.print(forward ? F("North") : F("South"));
+  u8g2.firstPage();
+  do {
+    u8g2.setFont(u8g2_font_6x10_tf);
+    u8g2.setCursor(10, 10); u8g2.print(F("EQ Platform"));
+    u8g2.setCursor(10, 25); u8g2.print(F("Tracking: ")); u8g2.print(tracking ? F("ON") : F("OFF"));
 
-  // Trim as percentage (rounded)
-  int pct = (int)(smoothedTrim * 100.0f + 0.5f);
-  u8g2.setCursor(10, 45);
-  u8g2.print(F("Trim: "));
-  u8g2.print(pct);
-  u8g2.print('%');
-  if (!potOk) {
-    u8g2.print(F(" FIX"));
-  }
+    u8g2.setCursor(10, 35);
+    u8g2.print(F("Direction: "));
+    u8g2.print(forward ? F("North") : F("South"));
 
-  // rev/h (two decimals)
-  u8g2.setCursor(10, 55); u8g2.print(F("rev/h: "));
-  char buf2[12];
-  dtostrf(revPerHour, 5, 2, buf2);
-  u8g2.print(buf2);
+    // Trim as percentage (rounded)
+    int pct = (int)(smoothedTrim * 100.0f + 0.5f);
+    u8g2.setCursor(10, 45);
+    u8g2.print(F("Trim: "));
+    u8g2.print(pct);
+    u8g2.print('%');
+    if (!potOk) {
+      u8g2.print(F(" FIX"));
+    }
 
-  u8g2.sendBuffer();
+    // rev/h (two decimals)
+    u8g2.setCursor(10, 55);
+    u8g2.print(F("rev/h: "));
+    dtostrf(revPerHour, 5, 2, g_buf2);
+    u8g2.print(g_buf2);
+  } while (u8g2.nextPage());
 }
 
 struct DirState {
@@ -175,23 +179,6 @@ DirState readDirState() {
   }
 
   return {true, forward};
-}
-
-void i2cScan() {
-  Serial.println(F("I2C scan:"));
-  byte count = 0;
-  for (byte addr = 1; addr < 127; ++addr) {
-    Wire.beginTransmission(addr);
-    byte error = Wire.endTransmission();
-    if (error == 0) {
-      Serial.print(F("  Found 0x"));
-      if (addr < 16) Serial.print('0');
-      Serial.print(addr, HEX);
-      Serial.println();
-      count++;
-    }
-  }
-  if (count == 0) Serial.println(F("  No I2C devices found"));
 }
 
 void setup() {
@@ -252,22 +239,18 @@ void setup() {
   Serial.print(F("Step interval (ms): "));
   Serial.println(stepIntervalMicros / 1000.0f, 3);
 
-  // I2C init & scan (helpful if display stays blank)
+  // I2C init
   Wire.begin();
-  Wire.setClock(400000); // fast I2C
-  i2cScan();
 
   // --- OLED init (U8g2) ---
   u8g2.begin();
-  u8g2.enableUTF8Print();
   u8g2.setI2CAddress(0x3C << 1);
-  u8g2.clearBuffer();
-  u8g2.setFont(u8g2_font_6x10_tf);
-  u8g2.setCursor(0, 10); u8g2.print(F("EQ Platform"));
-  u8g2.setCursor(0, 25); u8g2.print(F("Init..."));
-  u8g2.setFont(u8g2_font_logisoso16_tr);
-  u8g2.setCursor(0, 50); u8g2.print(F("OLED OK"));
-  u8g2.sendBuffer();
+  u8g2.firstPage();
+  do {
+    u8g2.setFont(u8g2_font_6x10_tf);
+    u8g2.setCursor(0, 12); u8g2.print(F("EQ Platform"));
+    u8g2.setCursor(0, 28); u8g2.print(F("Boot OK"));
+  } while (u8g2.nextPage());
 }
 
 void loop() {
