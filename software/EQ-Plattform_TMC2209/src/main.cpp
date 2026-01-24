@@ -44,6 +44,10 @@ const float R_MM          = 572.561f; // Pivot->contact radius (mm). Adjust to y
 // Sternzeit
 const float SIDEREAL_SEC  = 86164.0f;
 
+// Debug / bench test: multiply tracking speed to make motion visible.
+// Set to 1000.0f for a quick functional test, then put back to 1.0f for real tracking.
+const float SPEED_MULT = 1.0f;
+
 // --- Runtime values ---
 float BASE_USPS = 0.0f; // µSteps/s bei Poti-Mitte
 
@@ -181,7 +185,7 @@ void setup() {
   driver.en_spreadCycle(false);    // false=stealthChop (quiet), true=spreadCycle (torque)
   driver.TPOWERDOWN(10);
 
-  BASE_USPS = (STEPS_PER_REV * MICROSTEPS / SIDEREAL_SEC) * (R_MM / ROLLER_R_MM);
+  BASE_USPS = (STEPS_PER_REV * MICROSTEPS / SIDEREAL_SEC) * (R_MM / ROLLER_R_MM) * SPEED_MULT;
 
   float uStepsPerHour = BASE_USPS * 3600.0f;
   float revPerHour    = uStepsPerHour / (STEPS_PER_REV * MICROSTEPS);
@@ -192,6 +196,7 @@ void setup() {
   Serial.print(F("Roller r (mm): ")); Serial.println(ROLLER_R_MM, 3);
   Serial.print(F("Steps/rev: ")); Serial.println(STEPS_PER_REV, 0);
   Serial.print(F("Microsteps: ")); Serial.println(MICROSTEPS, 0);
+  Serial.print(F("Speed multiplier: ")); Serial.println(SPEED_MULT, 3);
   Serial.print(F("Driver: ")); Serial.println(F("TMC2209 (UART)"));
   Serial.print(F("RMS current (mA): ")); Serial.println(600);
   Serial.print(F("Base rate (uSteps/s): ")); Serial.println(BASE_USPS, 3);
