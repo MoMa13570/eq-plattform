@@ -38,7 +38,7 @@ TMC2209Stepper driver(&TMC_SERIAL, R_SENSE, TMC_ADDR);
 // --- Mechanik/Geometrie ---
 const float STEPS_PER_REV = 200.0f;   // NEMA17
 const float MICROSTEPS    = 16.0f;    // TMC2209 set via UART (driver.microsteps())
-const float ROLLER_R_MM   = 9.0f;     // Ø18 mm -> r=9 mm. Adjust to your shaft diameter!
+const float ROLLER_R_MM   = 10.0f;     // Ø18 mm -> r=9 mm. Adjust to your shaft diameter!
 const float R_MM          = 572.561f; // Pivot->contact radius (mm). Adjust to your geometry! (distance center south bearing to center of arc)
 
 // Sternzeit
