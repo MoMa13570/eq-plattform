@@ -15,11 +15,11 @@ static constexpr uint8_t TMC_ADDR = 0;       // MS1/MS2 address (0..3), usually 
 // --- Pins ---
 // 3-position direction switch (ON-OFF-ON):
 // - Switch COMMON -> GND
-// - North contact  -> D4
-// - South contact  -> D5
+// - North contact  -> D5 Schalter links
+// - South contact  -> D4 Schalter rechts
 // Middle position leaves both contacts open => OFF
-const int PIN_DIR_N = 4;              // North contact (active LOW)
-const int PIN_DIR_S = 5;              // South contact (active LOW)
+const int PIN_DIR_N = 5;              // North contact (active LOW)
+const int PIN_DIR_S = 4;              // South contact (active LOW)
 
 const int PIN_STEP  = 2;
 const int PIN_DIR   = 3;
