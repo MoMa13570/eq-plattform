@@ -26,6 +26,15 @@ const int PIN_DIR   = 3;
 const int PIN_EN    = 8;
 const int PIN_POT   = A0;             // 10k Poti
 
+// --- Endstops / Buttons (NO endstops to GND, use INPUT_PULLUP) ---
+const int PIN_HOME_BTN     = 9;   // Home button (momentary to GND)
+const int PIN_ENDSTOP_END  = 10;  // End endstop (NO to GND)
+const int PIN_ENDSTOP_HOME = 11;  // Home endstop (NO to GND)
+
+// Which motor direction moves *towards* the HOME endstop?
+// If homing runs the wrong way, flip this.
+static constexpr bool HOME_DIR_FORWARD = false; // false=South, true=North
+
 // --- TMC2209 UART (UNO/Nano uses SoftwareSerial) ---
 const int PIN_TMC_RX = 6;             // Arduino RX  <- TMC2209 UART pin
 const int PIN_TMC_TX = 7;             // Arduino TX  -> TMC2209 UART pin (recommend 1k in series)
@@ -72,6 +81,78 @@ static inline float clampf(float x, float a, float b) {
   return (x < a) ? a : (x > b) ? b : x;
 }
 
+enum MotionMode : uint8_t {
+  MODE_IDLE = 0,
+  MODE_TRACKING,
+  MODE_HOMING
+};
+
+static MotionMode g_mode = MODE_IDLE;
+
+enum HomingPhase : uint8_t {
+  HOME_PHASE_IDLE = 0,
+  HOME_PHASE_FAST_APPROACH,
+  HOME_PHASE_BACKOFF,
+  HOME_PHASE_SLOW_APPROACH
+};
+
+static HomingPhase g_home_phase = HOME_PHASE_IDLE;
+
+// Backoff distance after first hit (in microsteps). Tune for your mechanics.
+// 32 microsteps per full step @ MICROSTEPS=32.
+static constexpr uint32_t HOME_BACKOFF_USTEPS = 32UL * 80UL; // ~80 full steps
+
+// Homing speeds (uSteps/s). Initialized in setup() from BASE_USPS.
+static float HOMING_FAST_USPS = 0.0f;
+static float HOMING_SLOW_USPS = 0.0f;
+static float HOMING_BACKOFF_USPS = 0.0f;
+
+// Backoff step counter (decremented when we actually step)
+static uint32_t g_backoff_remaining = 0;
+
+// Latch for the home button: one press starts homing (doesn't need to be held)
+static bool g_home_latched = false;
+
+struct EndstopState {
+  bool home; // true = pressed
+  bool end;  // true = pressed
+};
+
+static inline EndstopState readEndstops() {
+  // NO switches to GND with INPUT_PULLUP => pressed == LOW
+  EndstopState s;
+  s.home = (digitalRead(PIN_ENDSTOP_HOME) == LOW);
+  s.end  = (digitalRead(PIN_ENDSTOP_END) == LOW);
+  return s;
+}
+
+// Simple debounce for the home button (active LOW)
+// Returns true while pressed.
+static bool readHomeButtonPressed() {
+  static uint8_t stable = HIGH;
+  static uint8_t last   = HIGH;
+  static unsigned long lastChange = 0;
+
+  uint8_t r = (uint8_t)digitalRead(PIN_HOME_BTN);
+  if (r != last) {
+    last = r;
+    lastChange = millis();
+  }
+  if ((millis() - lastChange) > 25) {
+    stable = last;
+  }
+  return (stable == LOW);
+}
+
+// Debounced edge: true only once per press
+static bool homeButtonPressedEvent() {
+  static bool lastStablePressed = false;
+  bool pressed = readHomeButtonPressed();
+  bool evt = (pressed && !lastStablePressed);
+  lastStablePressed = pressed;
+  return evt;
+}
+
 void applySpeedToInterval(float usps);
 float readTrimFactor() {
   // 8x average of ADC (0..1023) + min/max to detect floating input
@@ -114,7 +195,7 @@ float readTrimFactor() {
   return TRIM_MIN + (TRIM_MAX - TRIM_MIN) * t;
 }
 // --- OLED helper ---
-void updateOled(bool tracking, bool forward, float smoothedTrim, float targetUsps, bool potOk) {
+void updateOled(bool tracking, bool forward, float smoothedTrim, float targetUsps, bool potOk, EndstopState es, MotionMode mode, HomingPhase phase) {
   // Compute rev/h from effective speed
   float revPerHour = (targetUsps * 3600.0f) / (STEPS_PER_REV * MICROSTEPS);
 
@@ -128,6 +209,19 @@ void updateOled(bool tracking, bool forward, float smoothedTrim, float targetUsp
     u8g2.setFont(u8g2_font_6x10_tf);
     u8g2.setCursor(10, 10); u8g2.print(F("EQ Platform"));
     u8g2.setCursor(10, 25); u8g2.print(F("Tracking: ")); u8g2.print(tracking ? F("ON") : F("OFF"));
+    u8g2.setCursor(10, 30);
+    u8g2.print(F("Mode: "));
+    if (mode == MODE_HOMING) {
+      u8g2.print(F("HOME "));
+      if (phase == HOME_PHASE_FAST_APPROACH)      u8g2.print(F("FAST"));
+      else if (phase == HOME_PHASE_BACKOFF)       u8g2.print(F("BACK"));
+      else if (phase == HOME_PHASE_SLOW_APPROACH) u8g2.print(F("SLOW"));
+      else                                        u8g2.print(F("IDLE"));
+    } else if (tracking) {
+      u8g2.print(F("TRACK"));
+    } else {
+      u8g2.print(F("IDLE"));
+    }
 
     u8g2.setCursor(10, 35);
     u8g2.print(F("Direction: "));
@@ -143,8 +237,14 @@ void updateOled(bool tracking, bool forward, float smoothedTrim, float targetUsp
       u8g2.print(F(" FIX"));
     }
 
+    u8g2.setCursor(10, 50);
+    u8g2.print(F("Stops: H="));
+    u8g2.print(es.home ? F("1") : F("0"));
+    u8g2.print(F(" E="));
+    u8g2.print(es.end ? F("1") : F("0"));
+
     // rev/h (two decimals)
-    u8g2.setCursor(10, 55);
+    u8g2.setCursor(10, 62);
     u8g2.print(F("rev/h: "));
     dtostrf(revPerHour, 5, 2, g_buf2);
     u8g2.print(g_buf2);
@@ -202,6 +302,11 @@ void setup() {
 
   BASE_USPS = (STEPS_PER_REV * MICROSTEPS / SIDEREAL_SEC) * (R_MM / ROLLER_R_MM) * SPEED_MULT;
 
+  // Homing tuning
+  HOMING_FAST_USPS    = BASE_USPS * 8.0f;
+  HOMING_BACKOFF_USPS = BASE_USPS * 4.0f;
+  HOMING_SLOW_USPS    = BASE_USPS * 1.5f;
+
   float uStepsPerHour = BASE_USPS * 3600.0f;
   float revPerHour    = uStepsPerHour / (STEPS_PER_REV * MICROSTEPS);
   float minutesPerRev = 60.0f / revPerHour;
@@ -223,6 +328,10 @@ void setup() {
   pinMode(PIN_STEP, OUTPUT);
   pinMode(PIN_DIR,  OUTPUT);
   pinMode(PIN_EN,   OUTPUT);
+
+  pinMode(PIN_HOME_BTN, INPUT_PULLUP);
+  pinMode(PIN_ENDSTOP_HOME, INPUT_PULLUP);
+  pinMode(PIN_ENDSTOP_END, INPUT_PULLUP);
 
   digitalWrite(PIN_EN, HIGH);                // driver disabled at startup
 
@@ -254,40 +363,118 @@ void setup() {
 }
 
 void loop() {
-  DirState st = readDirState();
-  bool tracking = st.tracking;
   unsigned long nowMs = millis();
-  static bool lastTracking = false;
-  static unsigned long lastTrackingChangeMs = 0;
-  if (tracking != lastTracking && (nowMs - lastTrackingChangeMs) >= 2000) {
-    if (tracking) {
-      Serial.println(F("Tracking: ON"));
-    } else {
-      Serial.println(F("Tracking: OFF"));
-    }
-    lastTracking = tracking;
-    lastTrackingChangeMs = nowMs;
-  }
-  // TMC2209 EN pin is typically active-low (same as A4988)
-  digitalWrite(PIN_EN, tracking ? LOW : HIGH); // LOW = Driver active
 
-  bool forward = st.forward;
+  // Read inputs
+  DirState st = readDirState();
+  EndstopState es = readEndstops();
+  bool homeBtn = readHomeButtonPressed();
+  bool homeEvt = homeButtonPressedEvent();
+
+  // Mode transitions
+  // One press of the home button starts a full homing sequence (latched).
+  if (homeEvt) {
+    g_home_latched = true;
+    g_mode = MODE_HOMING;
+    g_home_phase = HOME_PHASE_FAST_APPROACH;
+    g_backoff_remaining = 0;
+    Serial.println(F("Mode: HOMING (latched)"));
+  }
+
+  // If we are not currently homing, follow the direction switch state.
+  if (g_mode != MODE_HOMING) {
+    g_mode = st.tracking ? MODE_TRACKING : MODE_IDLE;
+  }
+
+  bool tracking = (g_mode == MODE_TRACKING);
+  bool forward  = st.forward;
+
+  // In homing mode we override direction depending on phase.
+  if (g_mode == MODE_HOMING) {
+    if (g_home_phase == HOME_PHASE_BACKOFF) {
+      forward = !HOME_DIR_FORWARD; // move away from home switch
+    } else {
+      forward = HOME_DIR_FORWARD;  // move toward home switch
+    }
+  }
+
+  // Stop immediately if we are trying to move into a pressed endstop.
+  // - If moving toward HOME and home endstop is pressed: stop.
+  // - If moving toward END  and end endstop is pressed: stop.
+  bool towardHome = (forward == HOME_DIR_FORWARD);
+  bool blocked = (towardHome && es.home) || (!towardHome && es.end);
+
+  // Homing phase state machine (Backoff + slow re-approach)
+  if (g_mode == MODE_HOMING) {
+    switch (g_home_phase) {
+      case HOME_PHASE_FAST_APPROACH:
+        // When we hit HOME the first time: start backoff.
+        if (es.home && towardHome) {
+          g_home_phase = HOME_PHASE_BACKOFF;
+          g_backoff_remaining = HOME_BACKOFF_USTEPS;
+          Serial.println(F("Homing: first hit -> BACKOFF"));
+        }
+        break;
+
+      case HOME_PHASE_BACKOFF:
+        // When we've backed off enough AND the switch is released, do slow approach.
+        if (g_backoff_remaining == 0 && !es.home) {
+          g_home_phase = HOME_PHASE_SLOW_APPROACH;
+          Serial.println(F("Homing: released -> SLOW APPROACH"));
+        }
+        break;
+
+      case HOME_PHASE_SLOW_APPROACH:
+        // Second hit at low speed => final HOME position.
+        if (es.home && towardHome) {
+          g_home_phase = HOME_PHASE_IDLE;
+          g_home_latched = false;
+          g_mode = MODE_IDLE;
+          digitalWrite(PIN_EN, HIGH);
+          Serial.println(F("Homing done: precise HOME reached"));
+        }
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  // Driver enable
+  // Active LOW: LOW = enabled
+  if (g_mode == MODE_IDLE || blocked) {
+    digitalWrite(PIN_EN, HIGH);
+  } else {
+    digitalWrite(PIN_EN, LOW);
+  }
+
+  // Direction pin
   digitalWrite(PIN_DIR, forward ? HIGH : LOW);
+
+  // Logging (rate-limited)
+  static MotionMode lastMode = MODE_IDLE;
+  static unsigned long lastModeChangeMs = 0;
+  if (g_mode != lastMode && (nowMs - lastModeChangeMs) >= 200) {
+    if (g_mode == MODE_TRACKING) Serial.println(F("Mode: TRACKING"));
+    else if (g_mode == MODE_IDLE) Serial.println(F("Mode: IDLE"));
+    lastMode = g_mode;
+    lastModeChangeMs = nowMs;
+  }
+
   static bool lastForward = false;
   static unsigned long lastDirChangeMs = 0;
   static unsigned long dirChangedAt = 0;
-  if (tracking && forward != lastForward && (nowMs - lastDirChangeMs) >= 2000) {
-    if (forward) {
-      Serial.println(F("Direction: North"));
-    } else {
-      Serial.println(F("Direction: South"));
-    }
+  if ((g_mode != MODE_IDLE) && forward != lastForward && (nowMs - lastDirChangeMs) >= 200) {
+    Serial.print(F("Direction: "));
+    Serial.println(forward ? F("North") : F("South"));
     lastForward = forward;
     lastDirChangeMs = nowMs;
     dirChangedAt = micros();
   }
 
-  // Read potentiometer -> trim factor and resulting speed
+  float targetUsps = 0.0f;
+
+  // Read potentiometer -> trim factor and resulting speed (tracking mode)
   float trimFactor = readTrimFactor();
 
   // Exponential smoothing (EMA)
@@ -296,20 +483,22 @@ void loop() {
   const float ALPHA = 0.2f;                             // 0..1, lower = smoother
   smoothedTrim = smoothedTrim + ALPHA * (trimFactor - smoothedTrim);
 
-  float targetUsps = BASE_USPS * smoothedTrim;
-  applySpeedToInterval(targetUsps);
-
-  updateOled(tracking, forward, smoothedTrim, targetUsps, g_pot_ok);
-
-  // Debug output: trim factor and effective speed every 2 seconds
-  static unsigned long lastPrint = 0;
-  if (millis() - lastPrint > 2000) {
-    Serial.print(F("Trim=")); Serial.print(smoothedTrim, 3);
-    Serial.print(F("  uSteps/s=")); Serial.println(targetUsps, 3);
-    lastPrint = millis();
+  if (g_mode == MODE_HOMING) {
+    if (g_home_phase == HOME_PHASE_BACKOFF)      targetUsps = HOMING_BACKOFF_USPS;
+    else if (g_home_phase == HOME_PHASE_SLOW_APPROACH) targetUsps = HOMING_SLOW_USPS;
+    else                                          targetUsps = HOMING_FAST_USPS;
+  } else {
+    targetUsps = BASE_USPS * smoothedTrim;
   }
 
-  if (!tracking) return;
+  applySpeedToInterval(targetUsps);
+
+  // Update OLED with endstop/mode info
+  updateOled(tracking, forward, smoothedTrim, targetUsps, g_pot_ok, es, g_mode, g_home_phase);
+
+  if (g_mode == MODE_IDLE) return;
+  // If we're blocked by an endstop in the current direction, don't step.
+  if (blocked) return;
 
   // ensure at least 500 µs after a DIR change before a step occurs
   if ((long)(micros() - dirChangedAt) < 500) {
@@ -321,6 +510,11 @@ void loop() {
     digitalWrite(PIN_STEP, HIGH);
     delayMicroseconds(STEP_PULSE_US);
     digitalWrite(PIN_STEP, LOW);
+
+    // Count backoff distance only when we actually step
+    if (g_mode == MODE_HOMING && g_home_phase == HOME_PHASE_BACKOFF && g_backoff_remaining > 0) {
+      g_backoff_remaining--;
+    }
 
     lastStepMicros += stepIntervalMicros;
     if ((long)(now - lastStepMicros) >= (long)stepIntervalMicros) {
