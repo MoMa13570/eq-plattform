@@ -210,13 +210,21 @@ void updateOled(bool tracking, bool forward, float smoothedTrim, float targetUsp
 
   u8g2.firstPage();
   do {
-    u8g2.setFont(u8g2_font_6x10_tf);
-    u8g2.setCursor(10, 10); u8g2.print(F("EQ Platform"));
-    u8g2.setCursor(10, 25); u8g2.print(F("Tracking: ")); u8g2.print(tracking ? F("ON") : F("OFF"));
-    u8g2.setCursor(10, 30);
-    u8g2.print(F("Mode: "));
+    // Smaller font + evenly spaced lines -> looks less cramped on 128x64
+    u8g2.setFont(u8g2_font_5x8_tf);
+
+    // Title
+    u8g2.setCursor(0, 10);
+    u8g2.print(F("EQ Platform"));
+
+    // Tracking + Mode on one line
+    u8g2.setCursor(0, 20);
+    u8g2.print(F("Trk:"));
+    u8g2.print(tracking ? F("ON") : F("OFF"));
+    u8g2.print(F("  "));
+    u8g2.print(F("Mode:"));
     if (mode == MODE_HOMING) {
-      u8g2.print(F("HOME "));
+      u8g2.print(F("HOME-"));
       if (phase == HOME_PHASE_FAST_APPROACH)      u8g2.print(F("FAST"));
       else if (phase == HOME_PHASE_BACKOFF)       u8g2.print(F("BACK"));
       else if (phase == HOME_PHASE_SLOW_APPROACH) u8g2.print(F("SLOW"));
@@ -227,29 +235,29 @@ void updateOled(bool tracking, bool forward, float smoothedTrim, float targetUsp
       u8g2.print(F("IDLE"));
     }
 
-    u8g2.setCursor(10, 35);
-    u8g2.print(F("Direction: "));
-    u8g2.print(forward ? F("North") : F("South"));
+    // Direction
+    u8g2.setCursor(0, 30);
+    u8g2.print(F("Dir:"));
+    u8g2.print(forward ? F("N" ) : F("S"));
 
-    // Trim as percentage (rounded)
+    // Trim
     int pct = (int)(smoothedTrim * 100.0f + 0.5f);
-    u8g2.setCursor(10, 45);
-    u8g2.print(F("Trim: "));
+    u8g2.setCursor(0, 40);
+    u8g2.print(F("Trim:"));
     u8g2.print(pct);
     u8g2.print('%');
-    if (!potOk) {
-      u8g2.print(F(" FIX"));
-    }
+    if (!potOk) u8g2.print(F(" FIX"));
 
-    u8g2.setCursor(10, 50);
-    u8g2.print(F("Stops: H="));
+    // Endstops
+    u8g2.setCursor(0, 50);
+    u8g2.print(F("Stops H:"));
     u8g2.print(es.home ? F("1") : F("0"));
-    u8g2.print(F(" E="));
+    u8g2.print(F(" E:"));
     u8g2.print(es.end ? F("1") : F("0"));
 
-    // rev/h (two decimals)
-    u8g2.setCursor(10, 62);
-    u8g2.print(F("rev/h: "));
+    // rev/h
+    u8g2.setCursor(0, 60);
+    u8g2.print(F("rev/h:"));
     dtostrf(revPerHour, 5, 2, g_buf2);
     u8g2.print(g_buf2);
   } while (u8g2.nextPage());
@@ -306,10 +314,11 @@ void setup() {
 
   BASE_USPS = (STEPS_PER_REV * MICROSTEPS / SIDEREAL_SEC) * (R_MM / ROLLER_R_MM) * SPEED_MULT;
 
-  // Homing tuning
-  HOMING_FAST_USPS    = BASE_USPS * 8.0f;
-  HOMING_BACKOFF_USPS = BASE_USPS * 4.0f;
-  HOMING_SLOW_USPS    = BASE_USPS * 1.5f;
+  // Homing tuning (very fluent + fast)
+  // BASE_USPS is extremely slow (sidereal). Large multipliers are still safe on UNO.
+  HOMING_FAST_USPS    = BASE_USPS * 60.0f;  // fast seek to switch
+  HOMING_BACKOFF_USPS = BASE_USPS * 30.0f;  // quick backoff
+  HOMING_SLOW_USPS    = BASE_USPS * 8.0f;   // still slower for repeatable trigger
 
   float uStepsPerHour = BASE_USPS * 3600.0f;
   float revPerHour    = uStepsPerHour / (STEPS_PER_REV * MICROSTEPS);
@@ -372,7 +381,6 @@ void loop() {
   // Read inputs
   DirState st = readDirState();
   EndstopState es = readEndstops();
-  bool homeBtn = readHomeButtonPressed();
   bool homeEvt = homeButtonPressedEvent();
 
   // Mode transitions
