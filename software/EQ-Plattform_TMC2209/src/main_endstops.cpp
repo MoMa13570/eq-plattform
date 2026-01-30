@@ -68,10 +68,19 @@ static bool g_pot_ok = true;   // updated by readTrimFactor()
 const float TRIM_MIN = 0.90f;
 const float TRIM_MAX = 1.10f;
 
-// Step-Timing
-const unsigned int STEP_PULSE_US = 3;
-unsigned long lastStepMicros     = 0;
-unsigned long stepIntervalMicros = 1000000UL;
+// Step-Timing (Timer-driven)
+const unsigned int STEP_PULSE_US = 5; // pulse width
+
+// Timer1 runs at 2 MHz with prescaler 8 (0.5 us per tick)
+static constexpr uint32_t T1_HZ = 2000000UL;
+static constexpr uint16_t T1_PRESCALE_BITS = (1 << CS11);
+
+// Shared step timing state (written in loop, used in ISR)
+volatile uint32_t g_interval_ticks = 2000000UL; // default 1s
+volatile bool g_step_run = false;               // true => generate steps
+volatile bool g_step_blocked = false;           // true => pause steps (endstop/idle)
+volatile bool g_step_high = false;
+volatile uint32_t g_pause_until_us = 0;         // DIR-change guard
 
 // Small shared buffer to avoid large stack frames in drawing code
 static char g_buf2[12];
@@ -87,7 +96,11 @@ enum MotionMode : uint8_t {
   MODE_HOMING
 };
 
+
 static MotionMode g_mode = MODE_IDLE;
+
+// Last selected tracking direction (from the 3-position switch)
+static bool g_track_forward = true;
 
 enum HomingPhase : uint8_t {
   HOME_PHASE_IDLE = 0,
@@ -100,7 +113,13 @@ static HomingPhase g_home_phase = HOME_PHASE_IDLE;
 
 // Backoff distance after first hit (in microsteps). Tune for your mechanics.
 // 32 microsteps per full step @ MICROSTEPS=32.
-static constexpr uint32_t HOME_BACKOFF_USTEPS = 32UL * 80UL; // ~80 full steps
+// Backoff distance target: max 0.25 roller revolutions.
+// uSteps per motor rev = STEPS_PER_REV * MICROSTEPS = 200 * 32 = 6400
+// 0.25 rev => 1600 uSteps
+static constexpr uint32_t HOME_BACKOFF_USTEPS = 1600UL;
+
+// Backoff time limit (ms)
+static constexpr unsigned long HOME_BACKOFF_MAX_MS = 2000UL;
 
 // Homing speeds (uSteps/s). Initialized in setup() from BASE_USPS.
 static float HOMING_FAST_USPS = 0.0f;
@@ -109,6 +128,7 @@ static float HOMING_BACKOFF_USPS = 0.0f;
 
 // Backoff step counter (decremented when we actually step)
 static uint32_t g_backoff_remaining = 0;
+static unsigned long g_backoff_started_ms = 0;
 
 // Latch for the home button: one press starts homing (doesn't need to be held)
 static bool g_home_latched = false;
@@ -149,6 +169,7 @@ static bool readHomeButtonPressed() {
 }
 
 // Debounced edge: true only once per press
+
 static bool homeButtonPressedEvent() {
   static bool lastStablePressed = false;
   bool pressed = readHomeButtonPressed();
@@ -157,7 +178,102 @@ static bool homeButtonPressedEvent() {
   return evt;
 }
 
+// Button events: short press = toggle tracking, long press = start homing
+static void readButtonEvents(bool &shortPress, bool &longPress) {
+  shortPress = false;
+  longPress = false;
+
+  static bool lastPressed = false;
+  static unsigned long pressedAtMs = 0;
+  static bool longFired = false;
+
+  bool pressed = readHomeButtonPressed();
+
+  if (pressed && !lastPressed) {
+    pressedAtMs = millis();
+    longFired = false;
+  }
+
+  const unsigned long LONG_MS = 800;
+
+  if (pressed && !longFired && (millis() - pressedAtMs) >= LONG_MS) {
+    longPress = true;
+    longFired = true;
+  }
+
+  if (!pressed && lastPressed) {
+    // Released
+    if (!longFired) {
+      shortPress = true;
+    }
+  }
+
+  lastPressed = pressed;
+}
+
 void applySpeedToInterval(float usps);
+
+static inline uint32_t usToTicks(uint32_t us) {
+  // 0.5 us per tick at 2 MHz
+  return (uint32_t)(us * 2UL);
+}
+
+// Timer1 Compare ISR: generates STEP pulses independent of loop() jitter
+ISR(TIMER1_COMPA_vect) {
+  // If paused due to DIR change, don't step
+  if ((int32_t)(micros() - g_pause_until_us) < 0) {
+    // keep step low
+    digitalWrite(PIN_STEP, LOW);
+    g_step_high = false;
+    return;
+  }
+
+  if (!g_step_run || g_step_blocked) {
+    digitalWrite(PIN_STEP, LOW);
+    g_step_high = false;
+    return;
+  }
+
+  // schedule next edge
+  uint16_t pulseTicks = (uint16_t)usToTicks(STEP_PULSE_US);
+  uint32_t interval = g_interval_ticks;
+  if (interval < (uint32_t)pulseTicks * 2UL) interval = (uint32_t)pulseTicks * 2UL;
+
+  if (!g_step_high) {
+    // rising edge
+    digitalWrite(PIN_STEP, HIGH);
+    g_step_high = true;
+    OCR1A = (uint16_t)pulseTicks;
+  } else {
+    // falling edge (one full step completed)
+    digitalWrite(PIN_STEP, LOW);
+    g_step_high = false;
+
+    // Count backoff distance only when we actually step (falling edge)
+    if (g_mode == MODE_HOMING && g_home_phase == HOME_PHASE_BACKOFF && g_backoff_remaining > 0) {
+      g_backoff_remaining--;
+    }
+
+    uint32_t rest = interval - (uint32_t)pulseTicks;
+    if (rest > 65535UL) rest = 65535UL;
+    OCR1A = (uint16_t)rest;
+  }
+}
+
+static void initTimer1() {
+  cli();
+  TCCR1A = 0;
+  TCCR1B = 0;
+  TCNT1  = 0;
+  // CTC mode
+  TCCR1B |= (1 << WGM12);
+  // prescaler 8 => 2 MHz
+  TCCR1B |= T1_PRESCALE_BITS;
+  // initial compare
+  OCR1A = 40000; // 20 ms initial
+  TIMSK1 |= (1 << OCIE1A);
+  sei();
+}
 float readTrimFactor() {
   // 8x average of ADC (0..1023) + min/max to detect floating input
   uint32_t acc = 0;
@@ -205,7 +321,9 @@ void updateOled(bool tracking, bool forward, float smoothedTrim, float targetUsp
 
   static unsigned long lastDraw = 0;
   unsigned long now = millis();
-  if (now - lastDraw < 500) return; // update every 500 ms max
+  // OLED drawing over I2C blocks ms -> keep it slow while motor is moving
+  unsigned long minPeriod = (mode == MODE_IDLE) ? 500UL : 2000UL;
+  if (now - lastDraw < minPeriod) return;
   lastDraw = now;
 
   u8g2.firstPage();
@@ -263,9 +381,10 @@ void updateOled(bool tracking, bool forward, float smoothedTrim, float targetUsp
   } while (u8g2.nextPage());
 }
 
+
 struct DirState {
-  bool tracking;
-  bool forward; // true = North, false = South
+  bool selected;  // true if switch is in N or S (valid single contact)
+  bool forward;   // true = North, false = South
 };
 
 DirState readDirState() {
@@ -275,12 +394,12 @@ DirState readDirState() {
   bool northSelected = (digitalRead(PIN_DIR_N) == LOW);
   bool southSelected = (digitalRead(PIN_DIR_S) == LOW);
 
-  // Middle position: neither contact connected -> OFF
+  // Middle position: neither contact connected -> no selection (no function)
   if (!northSelected && !southSelected) {
     return {false, true};
   }
 
-  // Safety: if both are active, treat as OFF
+  // Safety: if both are active, treat as no selection
   if (northSelected && southSelected) {
     return {false, true};
   }
@@ -316,7 +435,7 @@ void setup() {
 
   // Homing tuning (very fluent + fast)
   // BASE_USPS is extremely slow (sidereal). Large multipliers are still safe on UNO.
-  HOMING_FAST_USPS    = BASE_USPS * 60.0f;  // fast seek to switch
+  HOMING_FAST_USPS    = BASE_USPS * 80.0f;  // faster seek to switch
   HOMING_BACKOFF_USPS = BASE_USPS * 30.0f;  // quick backoff
   HOMING_SLOW_USPS    = BASE_USPS * 8.0f;   // still slower for repeatable trigger
 
@@ -349,17 +468,19 @@ void setup() {
   digitalWrite(PIN_EN, HIGH);                // driver disabled at startup
 
   DirState st0 = readDirState();
-  digitalWrite(PIN_DIR, st0.forward ? HIGH : LOW);
+  if (st0.selected) {
+    g_track_forward = st0.forward;
+  }
+  digitalWrite(PIN_DIR, g_track_forward ? HIGH : LOW);
 
   float usps = BASE_USPS * readTrimFactor();
   applySpeedToInterval(usps);
-  lastStepMicros = micros();
+  digitalWrite(PIN_STEP, LOW);
+  initTimer1();
 
   analogReference(DEFAULT);
 
   Serial.print(F("Start usps: ")); Serial.println(usps, 3);
-  Serial.print(F("Step interval (ms): "));
-  Serial.println(stepIntervalMicros / 1000.0f, 3);
 
   // I2C init
   Wire.begin();
@@ -381,11 +502,19 @@ void loop() {
   // Read inputs
   DirState st = readDirState();
   EndstopState es = readEndstops();
-  bool homeEvt = homeButtonPressedEvent();
 
-  // Mode transitions
-  // One press of the home button starts a full homing sequence (latched).
-  if (homeEvt) {
+  bool btnShort = false;
+  bool btnLong  = false;
+  readButtonEvents(btnShort, btnLong);
+
+  // Update last selected direction from the switch (N/S only)
+  if (st.selected) {
+    g_track_forward = st.forward;
+  }
+
+  // --- Mode transitions ---
+  // Long press => start homing
+  if (btnLong) {
     g_home_latched = true;
     g_mode = MODE_HOMING;
     g_home_phase = HOME_PHASE_FAST_APPROACH;
@@ -396,16 +525,27 @@ void loop() {
     g_home_dir_forward = HOME_DIR_FORWARD;
     g_homing_dir_flipped = false;
 
-    Serial.println(F("Mode: HOMING (latched)"));
+    Serial.println(F("Mode: HOMING (long press)"));
   }
 
-  // If we are not currently homing, follow the direction switch state.
+  // If not homing:
+  // - Switch in N or S selects direction only.
+  // - Switch in middle has no function.
+  // - Short press toggles tracking (start/stop) regardless of switch position.
   if (g_mode != MODE_HOMING) {
-    g_mode = st.tracking ? MODE_TRACKING : MODE_IDLE;
+    if (btnShort) {
+      if (g_mode == MODE_TRACKING) {
+        g_mode = MODE_IDLE;
+        Serial.println(F("Tracking: OFF (button)"));
+      } else {
+        g_mode = MODE_TRACKING;
+        Serial.println(F("Tracking: ON (button)"));
+      }
+    }
   }
 
   bool tracking = (g_mode == MODE_TRACKING);
-  bool forward  = st.forward;
+  bool forward  = g_track_forward;
 
   // In homing mode we override direction depending on phase.
   if (g_mode == MODE_HOMING) {
@@ -463,17 +603,33 @@ void loop() {
           if (es.home && towardHome) {
             g_home_phase = HOME_PHASE_BACKOFF;
             g_backoff_remaining = HOME_BACKOFF_USTEPS;
+            g_backoff_started_ms = millis();
             Serial.println(F("Homing: first hit -> BACKOFF"));
           }
           break;
 
-        case HOME_PHASE_BACKOFF:
+        case HOME_PHASE_BACKOFF: {
+          // Backoff stops when we reach the distance target OR after 2 seconds (whichever comes first).
+          if ((millis() - g_backoff_started_ms) >= HOME_BACKOFF_MAX_MS) {
+            g_backoff_remaining = 0;
+          }
+
           // When we've backed off enough AND the switch is released, do slow approach.
           if (g_backoff_remaining == 0 && !es.home) {
             g_home_phase = HOME_PHASE_SLOW_APPROACH;
             Serial.println(F("Homing: released -> SLOW APPROACH"));
           }
+
+          // If we've hit the limit but the switch is still pressed, abort (stuck switch/mechanics).
+          if (g_backoff_remaining == 0 && es.home) {
+            g_home_phase = HOME_PHASE_IDLE;
+            g_home_latched = false;
+            g_mode = MODE_IDLE;
+            digitalWrite(PIN_EN, HIGH);
+            Serial.println(F("Homing error: backoff limit reached but HOME still pressed"));
+          }
           break;
+        }
 
         case HOME_PHASE_SLOW_APPROACH:
           // Second hit at low speed => final HOME position.
@@ -548,34 +704,23 @@ void loop() {
   // Update OLED with endstop/mode info
   updateOled(tracking, forward, smoothedTrim, targetUsps, g_pot_ok, es, g_mode, g_home_phase);
 
-  if (g_mode == MODE_IDLE) return;
-  // If we're blocked by an endstop in the current direction, don't step.
-  if (blocked) return;
+  // Tell the timer ISR whether it may step.
+  g_step_blocked = blocked;
+  g_step_run = (g_mode != MODE_IDLE);
 
-  // ensure at least 500 µs after a DIR change before a step occurs
+  // DIR-change guard: pause stepping for 500us after a direction change
   if ((long)(micros() - dirChangedAt) < 500) {
-    return;
+    g_pause_until_us = micros() + 500;
+  } else {
+    g_pause_until_us = 0;
   }
 
-  unsigned long now = micros();
-  if ((long)(now - lastStepMicros) >= (long)stepIntervalMicros) {
-    digitalWrite(PIN_STEP, HIGH);
-    delayMicroseconds(STEP_PULSE_US);
-    digitalWrite(PIN_STEP, LOW);
-
-    // Count backoff distance only when we actually step
-    if (g_mode == MODE_HOMING && g_home_phase == HOME_PHASE_BACKOFF && g_backoff_remaining > 0) {
-      g_backoff_remaining--;
-    }
-
-    lastStepMicros += stepIntervalMicros;
-    if ((long)(now - lastStepMicros) >= (long)stepIntervalMicros) {
-      lastStepMicros = now;
-    }
-  }
+  return;
 }
 
 void applySpeedToInterval(float usps) {
   if (usps < 0.0001f) usps = 0.0001f;
-  stepIntervalMicros = (unsigned long)(1000000.0f / usps);
+  uint32_t ticks = (uint32_t)((float)T1_HZ / usps);
+  if (ticks < 20) ticks = 20; // avoid too-fast / zero
+  g_interval_ticks = ticks;
 }
