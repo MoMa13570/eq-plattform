@@ -113,6 +113,10 @@ static uint32_t g_backoff_remaining = 0;
 // Latch for the home button: one press starts homing (doesn't need to be held)
 static bool g_home_latched = false;
 
+// Runtime homing direction (can be flipped once for safety if we hit the END stop)
+static bool g_home_dir_forward = HOME_DIR_FORWARD;
+static bool g_homing_dir_flipped = false;
+
 struct EndstopState {
   bool home; // true = pressed
   bool end;  // true = pressed
@@ -378,6 +382,12 @@ void loop() {
     g_mode = MODE_HOMING;
     g_home_phase = HOME_PHASE_FAST_APPROACH;
     g_backoff_remaining = 0;
+
+    // Start with the configured HOME direction, but allow one automatic flip
+    // if we unexpectedly reach the END endstop during homing.
+    g_home_dir_forward = HOME_DIR_FORWARD;
+    g_homing_dir_flipped = false;
+
     Serial.println(F("Mode: HOMING (latched)"));
   }
 
@@ -392,51 +402,85 @@ void loop() {
   // In homing mode we override direction depending on phase.
   if (g_mode == MODE_HOMING) {
     if (g_home_phase == HOME_PHASE_BACKOFF) {
-      forward = !HOME_DIR_FORWARD; // move away from home switch
+      forward = !g_home_dir_forward; // move away from home switch
     } else {
-      forward = HOME_DIR_FORWARD;  // move toward home switch
+      forward = g_home_dir_forward;  // move toward home switch
     }
   }
 
   // Stop immediately if we are trying to move into a pressed endstop.
   // - If moving toward HOME and home endstop is pressed: stop.
   // - If moving toward END  and end endstop is pressed: stop.
-  bool towardHome = (forward == HOME_DIR_FORWARD);
+  bool towardHome = (forward == g_home_dir_forward);
   bool blocked = (towardHome && es.home) || (!towardHome && es.end);
+
+  // Extra homing safety: during FAST/SLOW approach we should never hit the END stop.
+  // If we do, stop and (once) flip the assumed home direction and try again.
+  bool homingApproach = (g_mode == MODE_HOMING) && (g_home_phase != HOME_PHASE_BACKOFF);
+  bool hitEndUnexpected = homingApproach && es.end;
+  if (hitEndUnexpected) {
+    blocked = true; // stop immediately on END hit during approach
+  }
 
   // Homing phase state machine (Backoff + slow re-approach)
   if (g_mode == MODE_HOMING) {
-    switch (g_home_phase) {
-      case HOME_PHASE_FAST_APPROACH:
-        // When we hit HOME the first time: start backoff.
-        if (es.home && towardHome) {
-          g_home_phase = HOME_PHASE_BACKOFF;
-          g_backoff_remaining = HOME_BACKOFF_USTEPS;
-          Serial.println(F("Homing: first hit -> BACKOFF"));
-        }
-        break;
+    // If we hit the END endstop while approaching HOME, our homing direction is wrong.
+    if (hitEndUnexpected) {
+      if (!g_homing_dir_flipped) {
+        g_homing_dir_flipped = true;
+        g_home_dir_forward = !g_home_dir_forward;
+        g_home_phase = HOME_PHASE_FAST_APPROACH;
+        g_backoff_remaining = 0;
+        Serial.println(F("Homing safety: END reached -> flip direction and retry"));
+      } else {
+        // Already flipped once -> abort to avoid endless bouncing.
+        g_home_phase = HOME_PHASE_IDLE;
+        g_home_latched = false;
+        g_mode = MODE_IDLE;
+        digitalWrite(PIN_EN, HIGH);
+        Serial.println(F("Homing error: END reached again, abort"));
+      }
+      // After handling this condition, do not run the normal phase logic in this loop.
+      // (We will retry on the next loop tick.)
+      // NOTE: return is safe here because we already set EN HIGH above on abort,
+      // and blocked will prevent stepping this tick.
+    }
+    if (hitEndUnexpected) {
+      // handled above
+    } else
+    {
+      switch (g_home_phase) {
+        case HOME_PHASE_FAST_APPROACH:
+          // When we hit HOME the first time: start backoff.
+          if (es.home && towardHome) {
+            g_home_phase = HOME_PHASE_BACKOFF;
+            g_backoff_remaining = HOME_BACKOFF_USTEPS;
+            Serial.println(F("Homing: first hit -> BACKOFF"));
+          }
+          break;
 
-      case HOME_PHASE_BACKOFF:
-        // When we've backed off enough AND the switch is released, do slow approach.
-        if (g_backoff_remaining == 0 && !es.home) {
-          g_home_phase = HOME_PHASE_SLOW_APPROACH;
-          Serial.println(F("Homing: released -> SLOW APPROACH"));
-        }
-        break;
+        case HOME_PHASE_BACKOFF:
+          // When we've backed off enough AND the switch is released, do slow approach.
+          if (g_backoff_remaining == 0 && !es.home) {
+            g_home_phase = HOME_PHASE_SLOW_APPROACH;
+            Serial.println(F("Homing: released -> SLOW APPROACH"));
+          }
+          break;
 
-      case HOME_PHASE_SLOW_APPROACH:
-        // Second hit at low speed => final HOME position.
-        if (es.home && towardHome) {
-          g_home_phase = HOME_PHASE_IDLE;
-          g_home_latched = false;
-          g_mode = MODE_IDLE;
-          digitalWrite(PIN_EN, HIGH);
-          Serial.println(F("Homing done: precise HOME reached"));
-        }
-        break;
+        case HOME_PHASE_SLOW_APPROACH:
+          // Second hit at low speed => final HOME position.
+          if (es.home && towardHome) {
+            g_home_phase = HOME_PHASE_IDLE;
+            g_home_latched = false;
+            g_mode = MODE_IDLE;
+            digitalWrite(PIN_EN, HIGH);
+            Serial.println(F("Homing done: precise HOME reached"));
+          }
+          break;
 
-      default:
-        break;
+        default:
+          break;
+      }
     }
   }
 
