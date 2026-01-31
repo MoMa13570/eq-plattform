@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <util/atomic.h>
 #include <Wire.h>
 #include <U8g2lib.h>
 
@@ -58,7 +59,7 @@ const float SIDEREAL_SEC  = 86164.0f;
 const float SPEED_MULT = 1.0f;
 
 // --- Runtime values ---
-float BASE_USPS = 0.0f; // µSteps/s bei Poti-Mitte
+float BASE_USPS = 800.0f; // µSteps/s bei Poti-Mitte
 
 // If the potentiometer is missing/floating, we fall back to a fixed trim (1.00 = 100%).
 const float TRIM_FALLBACK = 1.00f;
@@ -80,7 +81,12 @@ volatile uint32_t g_interval_ticks = 2000000UL; // default 1s
 volatile bool g_step_run = false;               // true => generate steps
 volatile bool g_step_blocked = false;           // true => pause steps (endstop/idle)
 volatile bool g_step_high = false;
-volatile uint32_t g_pause_until_us = 0;         // DIR-change guard
+
+// DIR-change guard handled inside ISR: remaining pause time in Timer1 ticks (0.5us/tick)
+volatile uint32_t g_pause_ticks = 0;
+
+// Remaining wait time (ticks) while STEP is LOW between pulses (allows intervals > 65535)
+volatile uint32_t g_wait_ticks = 0;
 
 // Small shared buffer to avoid large stack frames in drawing code
 static char g_buf2[12];
@@ -218,45 +224,69 @@ static inline uint32_t usToTicks(uint32_t us) {
   return (uint32_t)(us * 2UL);
 }
 
+// Fast STEP pin access (UNO D2 = PD2)
+#define STEP_DDR   DDRD
+#define STEP_PORT  PORTD
+#define STEP_BIT   2
+static inline void stepHighFast() { STEP_PORT |=  (1 << STEP_BIT); }
+static inline void stepLowFast()  { STEP_PORT &= ~(1 << STEP_BIT); }
+
 // Timer1 Compare ISR: generates STEP pulses independent of loop() jitter
 ISR(TIMER1_COMPA_vect) {
-  // If paused due to DIR change, don't step
-  if ((int32_t)(micros() - g_pause_until_us) < 0) {
-    // keep step low
-    digitalWrite(PIN_STEP, LOW);
+  // 1) DIR-change pause (highest priority)
+  if (g_pause_ticks > 0) {
+    stepLowFast();
     g_step_high = false;
+    uint32_t chunk = g_pause_ticks;
+    if (chunk > 65535UL) chunk = 65535UL;
+    g_pause_ticks -= chunk;
+    OCR1A = (uint16_t)chunk;
     return;
   }
 
+  // 2) If not allowed to run, keep STEP low and re-check later
   if (!g_step_run || g_step_blocked) {
-    digitalWrite(PIN_STEP, LOW);
+    stepLowFast();
     g_step_high = false;
+    g_wait_ticks = 0;
+    OCR1A = 4000; // 2ms heartbeat
     return;
   }
 
-  // schedule next edge
-  uint16_t pulseTicks = (uint16_t)usToTicks(STEP_PULSE_US);
+  // 3) If we are waiting between steps (STEP low), consume the wait in chunks
+  if (!g_step_high && g_wait_ticks > 0) {
+    uint32_t chunk = g_wait_ticks;
+    if (chunk > 65535UL) chunk = 65535UL;
+    g_wait_ticks -= chunk;
+    OCR1A = (uint16_t)chunk;
+    return;
+  }
+
+  const uint16_t pulseTicks = (uint16_t)usToTicks(STEP_PULSE_US);
   uint32_t interval = g_interval_ticks;
   if (interval < (uint32_t)pulseTicks * 2UL) interval = (uint32_t)pulseTicks * 2UL;
 
   if (!g_step_high) {
     // rising edge
-    digitalWrite(PIN_STEP, HIGH);
+    stepHighFast();
     g_step_high = true;
-    OCR1A = (uint16_t)pulseTicks;
+    OCR1A = pulseTicks;
   } else {
-    // falling edge (one full step completed)
-    digitalWrite(PIN_STEP, LOW);
+    // falling edge
+    stepLowFast();
     g_step_high = false;
 
-    // Count backoff distance only when we actually step (falling edge)
-    if (g_mode == MODE_HOMING && g_home_phase == HOME_PHASE_BACKOFF && g_backoff_remaining > 0) {
-      g_backoff_remaining--;
-    }
+    // Backoff counting is handled in the blocking homing step slice.
 
-    uint32_t rest = interval - (uint32_t)pulseTicks;
-    if (rest > 65535UL) rest = 65535UL;
-    OCR1A = (uint16_t)rest;
+    // Schedule the remaining low time until the next step
+    g_wait_ticks = interval - (uint32_t)pulseTicks;
+    if (g_wait_ticks == 0) g_wait_ticks = 1;
+
+    // Trigger next compare soon to start consuming wait
+    uint32_t first = g_wait_ticks;
+    if (first > 65535UL) first = 65535UL;
+    g_wait_ticks -= first;
+    OCR1A = (uint16_t)first;
   }
 }
 
@@ -273,6 +303,38 @@ static void initTimer1() {
   OCR1A = 40000; // 20 ms initial
   TIMSK1 |= (1 << OCIE1A);
   sei();
+}
+
+// -------------------- Step helper (blocking slice, used for HOMING only) --------------------
+// Steps at `ustepsPerSecond` for up to `durationMs`, but aborts early if an endstop blocks movement.
+static void stepMotorSlice(uint32_t ustepsPerSecond, uint32_t durationMs, bool towardHome) {
+  if (ustepsPerSecond < 1) return;
+
+  // Convert rate to interval (us). One STEP pulse = one microstep.
+  uint32_t intervalUs = 1000000UL / ustepsPerSecond;
+  if (intervalUs <= STEP_PULSE_US + 1) intervalUs = STEP_PULSE_US + 2;
+
+  uint32_t start = millis();
+  while ((millis() - start) < durationMs) {
+    // Re-check endstops for responsive abort
+    EndstopState es = readEndstops();
+    bool blockedNow = (towardHome && es.home) || (!towardHome && es.end);
+    if (blockedNow) break;
+
+    // One microstep pulse
+    stepHighFast();
+    delayMicroseconds(STEP_PULSE_US);
+    stepLowFast();
+
+    // Count backoff distance only when we actually step
+    if (g_mode == MODE_HOMING && g_home_phase == HOME_PHASE_BACKOFF && g_backoff_remaining > 0) {
+      g_backoff_remaining--;
+    }
+
+    // Remaining low time
+    uint32_t rest = intervalUs - STEP_PULSE_US;
+    if (rest > 0) delayMicroseconds(rest);
+  }
 }
 float readTrimFactor() {
   // 8x average of ADC (0..1023) + min/max to detect floating input
@@ -332,14 +394,11 @@ void updateOled(bool tracking, bool forward, float smoothedTrim, float targetUsp
     u8g2.setFont(u8g2_font_5x8_tf);
 
     // Title
-    u8g2.setCursor(0, 10);
+    u8g2.setCursor(5, 10);
     u8g2.print(F("EQ Platform"));
 
-    // Tracking + Mode on one line
-    u8g2.setCursor(0, 20);
-    u8g2.print(F("Trk:"));
-    u8g2.print(tracking ? F("ON") : F("OFF"));
-    u8g2.print(F("  "));
+    // Mode
+    u8g2.setCursor(5, 20);
     u8g2.print(F("Mode:"));
     if (mode == MODE_HOMING) {
       u8g2.print(F("HOME-"));
@@ -354,27 +413,27 @@ void updateOled(bool tracking, bool forward, float smoothedTrim, float targetUsp
     }
 
     // Direction
-    u8g2.setCursor(0, 30);
+    u8g2.setCursor(5, 30);
     u8g2.print(F("Dir:"));
     u8g2.print(forward ? F("N" ) : F("S"));
 
     // Trim
     int pct = (int)(smoothedTrim * 100.0f + 0.5f);
-    u8g2.setCursor(0, 40);
+    u8g2.setCursor(5, 40);
     u8g2.print(F("Trim:"));
     u8g2.print(pct);
     u8g2.print('%');
     if (!potOk) u8g2.print(F(" FIX"));
 
     // Endstops
-    u8g2.setCursor(0, 50);
+    u8g2.setCursor(5, 50);
     u8g2.print(F("Stops H:"));
     u8g2.print(es.home ? F("1") : F("0"));
     u8g2.print(F(" E:"));
     u8g2.print(es.end ? F("1") : F("0"));
 
     // rev/h
-    u8g2.setCursor(0, 60);
+    u8g2.setCursor(5, 60);
     u8g2.print(F("rev/h:"));
     dtostrf(revPerHour, 5, 2, g_buf2);
     u8g2.print(g_buf2);
@@ -475,7 +534,7 @@ void setup() {
 
   float usps = BASE_USPS * readTrimFactor();
   applySpeedToInterval(usps);
-  digitalWrite(PIN_STEP, LOW);
+  stepLowFast();
   initTimer1();
 
   analogReference(DEFAULT);
@@ -491,8 +550,8 @@ void setup() {
   u8g2.firstPage();
   do {
     u8g2.setFont(u8g2_font_6x10_tf);
-    u8g2.setCursor(0, 12); u8g2.print(F("EQ Platform"));
-    u8g2.setCursor(0, 28); u8g2.print(F("Boot OK"));
+    u8g2.setCursor(5, 12); u8g2.print(F("EQ Platform"));
+    u8g2.setCursor(5, 28); u8g2.print(F("Boot OK"));
   } while (u8g2.nextPage());
 }
 
@@ -706,13 +765,19 @@ void loop() {
 
   // Tell the timer ISR whether it may step.
   g_step_blocked = blocked;
-  g_step_run = (g_mode != MODE_IDLE);
+  // Timer stepping only for TRACKING. HOMING uses blocking slices like the breadboard test.
+  g_step_run = (g_mode == MODE_TRACKING);
 
-  // DIR-change guard: pause stepping for 500us after a direction change
+  // DIR-change guard: pause stepping for 500us after a direction change (TRACKING / timer stepping)
   if ((long)(micros() - dirChangedAt) < 500) {
-    g_pause_until_us = micros() + 500;
-  } else {
-    g_pause_until_us = 0;
+    g_pause_ticks = usToTicks(500);
+  }
+
+  // HOMING uses a blocking, short step slice for responsive endstop handling.
+  // This mimics the breadboard test style (small time slices).
+  if (g_mode == MODE_HOMING && !blocked) {
+    uint32_t rate = (targetUsps < 1.0f) ? 1UL : (uint32_t)(targetUsps + 0.5f);
+    stepMotorSlice(rate, 20, towardHome);
   }
 
   return;
@@ -722,5 +787,7 @@ void applySpeedToInterval(float usps) {
   if (usps < 0.0001f) usps = 0.0001f;
   uint32_t ticks = (uint32_t)((float)T1_HZ / usps);
   if (ticks < 20) ticks = 20; // avoid too-fast / zero
-  g_interval_ticks = ticks;
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    g_interval_ticks = ticks;
+  }
 }
