@@ -1,265 +1,153 @@
 #include <Arduino.h>
+#include <avr/interrupt.h>
 #include <util/atomic.h>
+
 #include <Wire.h>
 #include <U8g2lib.h>
 
 #include <TMCStepper.h>
 #include <SoftwareSerial.h>
 
-// OLED: 128x64 I2C SSD1306 (U8g2 page buffer mode -> MUCH lower SRAM on UNO)
-U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
+// ================================
+//  Hardware / Pins
+// ================================
 
-// --- TMC2209 (UART configured, still STEP/DIR driven) ---
-static constexpr float R_SENSE = 0.11f;      // common value on many SilentStepStick boards (verify on your module)
-static constexpr uint8_t TMC_ADDR = 0;       // MS1/MS2 address (0..3), usually 0
-
-// --- Pins ---
 // 3-position direction switch (ON-OFF-ON):
-// - Switch COMMON -> GND
-// - North contact  -> D5 Schalter links
-// - South contact  -> D4 Schalter rechts
-// Middle position leaves both contacts open => OFF
-const int PIN_DIR_N = 5;              // North contact (active LOW)
-const int PIN_DIR_S = 4;              // South contact (active LOW)
+// - COMMON -> GND
+// - North contact -> D5
+// - South contact -> D4
+// Middle position leaves both contacts open.
+static constexpr uint8_t PIN_DIR_N = 5;   // active LOW
+static constexpr uint8_t PIN_DIR_S = 4;   // active LOW
 
-const int PIN_STEP  = 2;
-const int PIN_DIR   = 3;
-const int PIN_EN    = 8;
-const int PIN_POT   = A0;             // 10k Poti
+static constexpr uint8_t PIN_STEP = 2;    // UNO D2 (PD2)
+static constexpr uint8_t PIN_DIR  = 3;
+static constexpr uint8_t PIN_EN   = 8;    // active LOW (TMC enable)
+static constexpr uint8_t PIN_POT  = A0;
 
-// --- Endstops / Buttons (NO endstops to GND, use INPUT_PULLUP) ---
-const int PIN_HOME_BTN     = 9;   // Home button (momentary to GND)
-const int PIN_ENDSTOP_END  = 10;  // End endstop (NO to GND)
-const int PIN_ENDSTOP_HOME = 11;  // Home endstop (NO to GND)
+// Button + Endstops (NO switches wired to GND with INPUT_PULLUP)
+static constexpr uint8_t PIN_HOME_BTN     = 9;
+static constexpr uint8_t PIN_ENDSTOP_END  = 10;
+static constexpr uint8_t PIN_ENDSTOP_HOME = 11;
 
 // Endstop polarity:
-// - With NO switch wired to GND + INPUT_PULLUP => pressed == LOW (active_low=true)
-// - With NO switch wired to +5V + external pulldown => pressed == HIGH (active_low=false)
+//  - NO to GND + INPUT_PULLUP => pressed == LOW
 static constexpr bool ENDSTOP_ACTIVE_LOW = true;
 
-// Fallback: which motor direction moves *towards* the HOME endstop?
-// Used only if we don't yet know the last tracking direction.
-static constexpr bool HOME_DIR_FORWARD = false; // false=South, true=North
+// ================================
+//  TMC2209 (UART config, STEP/DIR motion)
+// ================================
+static constexpr float   R_SENSE  = 0.11f;
+static constexpr uint8_t TMC_ADDR = 0;
 
-// Last selected tracking direction (from the 3-position switch)
-static bool g_track_forward = true;
-static bool g_track_dir_valid = false; // becomes true once the switch was read in a valid N/S position
+static constexpr uint8_t PIN_TMC_RX = 6;
+static constexpr uint8_t PIN_TMC_TX = 7;
 
-// Auto-homing direction rule:
-// If you were tracking North, homing goes South (and vice versa).
-// If your mechanics are the other way around, flip this to false.
-static constexpr bool HOME_DIR_IS_OPPOSITE_OF_TRACK = true;
+SoftwareSerial  TMC_SERIAL(PIN_TMC_RX, PIN_TMC_TX);
+TMC2209Stepper  driver(&TMC_SERIAL, R_SENSE, TMC_ADDR);
 
-// --- TMC2209 UART (UNO/Nano uses SoftwareSerial) ---
-const int PIN_TMC_RX = 6;             // Arduino RX  <- TMC2209 UART pin
-const int PIN_TMC_TX = 7;             // Arduino TX  -> TMC2209 UART pin (recommend 1k in series)
+// If your switch orientation is reversed, flip this.
+static constexpr bool DIR_LEFT_IS_FORWARD = true; // true=North, false=South
 
-SoftwareSerial TMC_SERIAL(PIN_TMC_RX, PIN_TMC_TX); // RX, TX
-TMC2209Stepper driver(&TMC_SERIAL, R_SENSE, TMC_ADDR);
+// ================================
+//  Mechanics / Tracking
+// ================================
+static constexpr float STEPS_PER_REV = 200.0f;
+static constexpr float MICROSTEPS    = 32.0f;
+static constexpr float ROLLER_R_MM   = 10.0f;     // Ø20mm roller
+static constexpr float R_MM          = 572.561f;  // platform geometry
+static constexpr float SIDEREAL_SEC  = 86164.0f;
 
-#define DIR_LEFT_IS_FORWARD  true     // true = North, false = South
+// Multiplier for bench tests (1.0 for real tracking)
+static constexpr float SPEED_MULT    = 1.0f;
 
-// --- Mechanik/Geometrie ---
-const float STEPS_PER_REV = 200.0f;   // NEMA17
-const float MICROSTEPS    = 32.0f;    // TMC2209 set via UART (driver.microsteps())
-const float ROLLER_R_MM   = 10.0f;     // Ø20 mm -> r=10 mm. Adjust to your shaft diameter!
-const float R_MM          = 572.561f; // Pivot->contact radius (mm). Adjust to your geometry! (distance center south bearing to center of arc)
+// Pot trim
+static constexpr float TRIM_MIN      = 0.90f;
+static constexpr float TRIM_MAX      = 1.10f;
+static constexpr float TRIM_FALLBACK = 1.00f;
+static bool g_pot_ok = true;
 
-// Sternzeit
-const float SIDEREAL_SEC  = 86164.0f;
+// ================================
+//  OLED
+// ================================
+U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
+static char g_buf[12];
 
-// Debug / bench test: multiply tracking speed to make motion visible.
-// Set to 1000.0f for a quick functional test, then put back to 1.0f for real tracking.
-const float SPEED_MULT = 1.0f;
+// ================================
+//  Motion state
+// ================================
+enum MotionMode : uint8_t { MODE_IDLE = 0, MODE_TRACKING, MODE_HOMING };
+enum HomingPhase : uint8_t { HOME_PHASE_IDLE = 0, HOME_PHASE_FAST_APPROACH, HOME_PHASE_BACKOFF, HOME_PHASE_SLOW_APPROACH };
 
-// --- Runtime values ---
-float BASE_USPS = 800.0f; // µSteps/s bei Poti-Mitte
-
-// If the potentiometer is missing/floating, we fall back to a fixed trim (1.00 = 100%).
-const float TRIM_FALLBACK = 1.00f;
-static bool g_pot_ok = true;   // updated by readTrimFactor()
-
-// Trim (±10%)
-const float TRIM_MIN = 0.90f;
-const float TRIM_MAX = 1.10f;
-
-// Step-Timing (Timer-driven)
-const unsigned int STEP_PULSE_US = 5; // pulse width
-
-// Timer1 runs at 2 MHz with prescaler 8 (0.5 us per tick)
-static constexpr uint32_t T1_HZ = 2000000UL;
-static constexpr uint16_t T1_PRESCALE_BITS = (1 << CS11);
-
-// Shared step timing state (written in loop, used in ISR)
-volatile uint32_t g_interval_ticks = 2000000UL; // default 1s
-volatile bool g_step_run = false;               // true => generate steps
-volatile bool g_step_blocked = false;           // true => pause steps (endstop/idle)
-volatile bool g_step_high = false;
-
-// DIR-change guard handled inside ISR: remaining pause time in Timer1 ticks (0.5us/tick)
-volatile uint32_t g_pause_ticks = 0;
-
-// Remaining wait time (ticks) while STEP is LOW between pulses (allows intervals > 65535)
-volatile uint32_t g_wait_ticks = 0;
-
-// Small shared buffer to avoid large stack frames in drawing code
-static char g_buf2[12];
-
-// Helpers
-static inline float clampf(float x, float a, float b) {
-  return (x < a) ? a : (x > b) ? b : x;
-}
-
-enum MotionMode : uint8_t {
-  MODE_IDLE = 0,
-  MODE_TRACKING,
-  MODE_HOMING
-};
-
-
-static MotionMode g_mode = MODE_IDLE;
-
-
-enum HomingPhase : uint8_t {
-  HOME_PHASE_IDLE = 0,
-  HOME_PHASE_FAST_APPROACH,
-  HOME_PHASE_BACKOFF,
-  HOME_PHASE_SLOW_APPROACH
-};
-
+static MotionMode  g_mode       = MODE_IDLE;
 static HomingPhase g_home_phase = HOME_PHASE_IDLE;
 
-// Backoff distance after first hit (in microsteps). Tune for your mechanics.
-// 32 microsteps per full step @ MICROSTEPS=32.
-// Backoff distance target: max 0.25 roller revolutions.
-// uSteps per motor rev = STEPS_PER_REV * MICROSTEPS = 200 * 32 = 6400
-// 0.25 rev => 1600 uSteps
-static constexpr uint32_t HOME_BACKOFF_USTEPS = 1600UL;
+// Last selected direction from the switch
+static bool g_track_forward   = true;
+static bool g_track_dir_valid = false;
 
-// Backoff time limit (ms)
+// Fallback home direction (only used before a valid track direction was ever read)
+static constexpr bool HOME_DIR_FORWARD_FALLBACK = false; // false=South, true=North
+
+// ================================
+//  Homing config (tuning)
+// ================================
+// Direction selection:
+//  - If you tracked North => home goes South (and vice versa)
+static constexpr bool HOME_DIR_IS_OPPOSITE_OF_TRACK = true;
+
+// Speeds are derived from BASE_USPS (sidereal) using multipliers.
+static constexpr float HOME_FAST_MULT    = 150.0f;
+static constexpr float HOME_BACKOFF_MULT = 60.0f;
+static constexpr float HOME_SLOW_MULT    = 12.0f;
+
+// Backoff limits
+static constexpr uint32_t HOME_BACKOFF_USTEPS = 1600UL;        // 0.25 motor rev @ 200*32=6400 uSteps/rev
 static constexpr unsigned long HOME_BACKOFF_MAX_MS = 2000UL;
 
-// Homing speeds (uSteps/s). Initialized in setup() from BASE_USPS.
-static float HOMING_FAST_USPS = 0.0f;
-static float HOMING_SLOW_USPS = 0.0f;
-static float HOMING_BACKOFF_USPS = 0.0f;
+// Grace period after starting homing during which END pressed is tolerated
+static constexpr unsigned long HOMING_END_GRACE_MS = 300UL;
 
-// Backoff step counter (decremented when we actually step)
+// ================================
+//  Homing runtime state
+// ================================
+static bool g_home_dir_forward    = HOME_DIR_FORWARD_FALLBACK;
+static bool g_homing_dir_flipped  = false;
+static unsigned long g_homing_started_ms = 0;
+
 static uint32_t g_backoff_remaining = 0;
 static unsigned long g_backoff_started_ms = 0;
 
-// Latch for the home button: one press starts homing (doesn't need to be held)
-static bool g_home_latched = false;
+// Homing speeds (uSteps/s), computed in setup()
+static float BASE_USPS = 800.0f;
+static float HOMING_FAST_USPS    = 0.0f;
+static float HOMING_BACKOFF_USPS = 0.0f;
+static float HOMING_SLOW_USPS    = 0.0f;
 
-// Runtime homing direction (can be flipped once for safety if we hit the END stop)
-static bool g_home_dir_forward = HOME_DIR_FORWARD;
-static bool g_homing_dir_flipped = false;
+// ================================
+//  Timer1 step generator (TRACKING only)
+// ================================
+static constexpr uint16_t STEP_PULSE_US = 5;
+static constexpr uint32_t T1_HZ = 2000000UL; // 2 MHz (prescaler 8)
 
-// When homing starts while sitting on the END endstop, it needs a short moment to move off the switch.
-// During this grace time we do NOT treat END as an "unexpected" hit.
-static unsigned long g_homing_started_ms = 0;
-static constexpr unsigned long HOMING_END_GRACE_MS = 300UL;
+// Shared ISR state
+volatile uint32_t g_interval_ticks = 2000000UL;
+volatile bool     g_step_run       = false;
+volatile bool     g_step_blocked   = false;
+volatile bool     g_step_high      = false;
+volatile uint32_t g_pause_ticks    = 0; // 0.5us ticks
+volatile uint32_t g_wait_ticks     = 0; // 0.5us ticks
 
-struct EndstopState {
-  bool home;      // true = pressed
-  bool end;       // true = pressed
-  uint8_t homeRaw; // HIGH/LOW as read
-  uint8_t endRaw;  // HIGH/LOW as read
-};
+static inline uint32_t usToTicks(uint32_t us) { return us * 2UL; }
 
-static inline EndstopState readEndstops() {
-  EndstopState s;
-  s.homeRaw = (uint8_t)digitalRead(PIN_ENDSTOP_HOME);
-  s.endRaw  = (uint8_t)digitalRead(PIN_ENDSTOP_END);
-
-  if (ENDSTOP_ACTIVE_LOW) {
-    s.home = (s.homeRaw == LOW);
-    s.end  = (s.endRaw == LOW);
-  } else {
-    s.home = (s.homeRaw == HIGH);
-    s.end  = (s.endRaw == HIGH);
-  }
-  return s;
-}
-
-// Simple debounce for the home button (active LOW)
-// Returns true while pressed.
-static bool readHomeButtonPressed() {
-  static uint8_t stable = HIGH;
-  static uint8_t last   = HIGH;
-  static unsigned long lastChange = 0;
-
-  uint8_t r = (uint8_t)digitalRead(PIN_HOME_BTN);
-  if (r != last) {
-    last = r;
-    lastChange = millis();
-  }
-  if ((millis() - lastChange) > 25) {
-    stable = last;
-  }
-  return (stable == LOW);
-}
-
-// Debounced edge: true only once per press
-
-static bool homeButtonPressedEvent() {
-  static bool lastStablePressed = false;
-  bool pressed = readHomeButtonPressed();
-  bool evt = (pressed && !lastStablePressed);
-  lastStablePressed = pressed;
-  return evt;
-}
-
-// Button events: short press = toggle tracking, long press = start homing
-static void readButtonEvents(bool &shortPress, bool &longPress) {
-  shortPress = false;
-  longPress = false;
-
-  static bool lastPressed = false;
-  static unsigned long pressedAtMs = 0;
-  static bool longFired = false;
-
-  bool pressed = readHomeButtonPressed();
-
-  if (pressed && !lastPressed) {
-    pressedAtMs = millis();
-    longFired = false;
-  }
-
-  const unsigned long LONG_MS = 800;
-
-  if (pressed && !longFired && (millis() - pressedAtMs) >= LONG_MS) {
-    longPress = true;
-    longFired = true;
-  }
-
-  if (!pressed && lastPressed) {
-    // Released
-    if (!longFired) {
-      shortPress = true;
-    }
-  }
-
-  lastPressed = pressed;
-}
-
-void applySpeedToInterval(float usps);
-
-static inline uint32_t usToTicks(uint32_t us) {
-  // 0.5 us per tick at 2 MHz
-  return (uint32_t)(us * 2UL);
-}
-
-// Fast STEP pin access (UNO D2 = PD2)
-#define STEP_DDR   DDRD
-#define STEP_PORT  PORTD
-#define STEP_BIT   2
+// Fast STEP pin (UNO D2 = PD2)
+#define STEP_PORT PORTD
+#define STEP_BIT  2
 static inline void stepHighFast() { STEP_PORT |=  (1 << STEP_BIT); }
 static inline void stepLowFast()  { STEP_PORT &= ~(1 << STEP_BIT); }
 
-// Timer1 Compare ISR: generates STEP pulses independent of loop() jitter
 ISR(TIMER1_COMPA_vect) {
-  // 1) DIR-change pause (highest priority)
+  // 1) Pause (DIR-change guard)
   if (g_pause_ticks > 0) {
     stepLowFast();
     g_step_high = false;
@@ -270,7 +158,7 @@ ISR(TIMER1_COMPA_vect) {
     return;
   }
 
-  // 2) If not allowed to run, keep STEP low and re-check later
+  // 2) Not running / blocked
   if (!g_step_run || g_step_blocked) {
     stepLowFast();
     g_step_high = false;
@@ -279,7 +167,7 @@ ISR(TIMER1_COMPA_vect) {
     return;
   }
 
-  // 3) If we are waiting between steps (STEP low), consume the wait in chunks
+  // 3) Waiting between steps (STEP low)
   if (!g_step_high && g_wait_ticks > 0) {
     uint32_t chunk = g_wait_ticks;
     if (chunk > 65535UL) chunk = 65535UL;
@@ -293,22 +181,17 @@ ISR(TIMER1_COMPA_vect) {
   if (interval < (uint32_t)pulseTicks * 2UL) interval = (uint32_t)pulseTicks * 2UL;
 
   if (!g_step_high) {
-    // rising edge
     stepHighFast();
     g_step_high = true;
     OCR1A = pulseTicks;
   } else {
-    // falling edge
     stepLowFast();
     g_step_high = false;
 
-    // Backoff counting is handled in the blocking homing step slice.
-
-    // Schedule the remaining low time until the next step
+    // Remaining low time
     g_wait_ticks = interval - (uint32_t)pulseTicks;
     if (g_wait_ticks == 0) g_wait_ticks = 1;
 
-    // Trigger next compare soon to start consuming wait
     uint32_t first = g_wait_ticks;
     if (first > 65535UL) first = 65535UL;
     g_wait_ticks -= first;
@@ -321,31 +204,208 @@ static void initTimer1() {
   TCCR1A = 0;
   TCCR1B = 0;
   TCNT1  = 0;
-  // CTC mode
-  TCCR1B |= (1 << WGM12);
-  // prescaler 8 => 2 MHz
-  TCCR1B |= T1_PRESCALE_BITS;
-  // initial compare
-  OCR1A = 40000; // 20 ms initial
+  TCCR1B |= (1 << WGM12);   // CTC
+  TCCR1B |= (1 << CS11);    // prescaler 8 => 2MHz
+  OCR1A   = 40000;          // 20ms initial
   TIMSK1 |= (1 << OCIE1A);
   sei();
 }
 
-// -------------------- Step helper (blocking slice, used for HOMING only) --------------------
-// Steps at `ustepsPerSecond` for up to `durationMs`, but aborts early if an endstop blocks movement.
+// ================================
+//  Helpers
+// ================================
+struct EndstopState {
+  bool home;
+  bool end;
+  uint8_t homeRaw;
+  uint8_t endRaw;
+};
+
+static inline EndstopState readEndstops() {
+  EndstopState s;
+  s.homeRaw = (uint8_t)digitalRead(PIN_ENDSTOP_HOME);
+  s.endRaw  = (uint8_t)digitalRead(PIN_ENDSTOP_END);
+
+  if (ENDSTOP_ACTIVE_LOW) {
+    s.home = (s.homeRaw == LOW);
+    s.end  = (s.endRaw  == LOW);
+  } else {
+    s.home = (s.homeRaw == HIGH);
+    s.end  = (s.endRaw  == HIGH);
+  }
+  return s;
+}
+
+// Debounced button state (active LOW)
+static bool readHomeButtonPressed() {
+  static uint8_t stable = HIGH;
+  static uint8_t last   = HIGH;
+  static unsigned long lastChange = 0;
+
+  uint8_t r = (uint8_t)digitalRead(PIN_HOME_BTN);
+  if (r != last) {
+    last = r;
+    lastChange = millis();
+  }
+  if ((millis() - lastChange) > 25) stable = last;
+  return (stable == LOW);
+}
+
+// short press = toggle tracking, long press = start homing
+static void readButtonEvents(bool &shortPress, bool &longPress) {
+  shortPress = false;
+  longPress  = false;
+
+  static bool lastPressed = false;
+  static unsigned long pressedAtMs = 0;
+  static bool longFired = false;
+
+  bool pressed = readHomeButtonPressed();
+
+  if (pressed && !lastPressed) {
+    pressedAtMs = millis();
+    longFired = false;
+  }
+
+  const unsigned long LONG_MS = 800;
+  if (pressed && !longFired && (millis() - pressedAtMs) >= LONG_MS) {
+    longPress = true;
+    longFired = true;
+  }
+
+  if (!pressed && lastPressed && !longFired) {
+    shortPress = true;
+  }
+
+  lastPressed = pressed;
+}
+
+struct DirState { bool selected; bool forward; };
+
+static DirState readDirState() {
+  pinMode(PIN_DIR_N, INPUT_PULLUP);
+  pinMode(PIN_DIR_S, INPUT_PULLUP);
+
+  bool north = (digitalRead(PIN_DIR_N) == LOW);
+  bool south = (digitalRead(PIN_DIR_S) == LOW);
+
+  if (!north && !south) return {false, true};
+  if ( north &&  south) return {false, true};
+
+  bool forward = north; // north => forward
+  if (!DIR_LEFT_IS_FORWARD) forward = !forward;
+  return {true, forward};
+}
+
+static float readTrimFactor() {
+  // average + spread detect floating
+  uint32_t acc = 0;
+  int mn = 1023, mx = 0;
+  for (int i = 0; i < 8; ++i) {
+    int v = analogRead(PIN_POT);
+    acc += (uint32_t)v;
+    if (v < mn) mn = v;
+    if (v > mx) mx = v;
+  }
+
+  float raw = acc / 8.0f;
+
+  const int FLOAT_SPREAD = 60;
+  if ((mx - mn) > FLOAT_SPREAD || raw < 2.0f || raw > 1021.0f) {
+    g_pot_ok = false;
+    return TRIM_FALLBACK;
+  }
+  g_pot_ok = true;
+
+  // deadband
+  const int CENTER_ADC = 512;
+  const int DEADBAND   = 8;
+  if (raw > (CENTER_ADC - DEADBAND) && raw < (CENTER_ADC + DEADBAND)) raw = CENTER_ADC;
+
+  float t = raw / 1023.0f;
+  return TRIM_MIN + (TRIM_MAX - TRIM_MIN) * t;
+}
+
+static void applySpeedToTimer(float ustepsPerSecond) {
+  if (ustepsPerSecond < 0.0001f) ustepsPerSecond = 0.0001f;
+  uint32_t ticks = (uint32_t)((float)T1_HZ / ustepsPerSecond);
+  if (ticks < 20) ticks = 20;
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { g_interval_ticks = ticks; }
+}
+
+// ================================
+//  OLED
+// ================================
+static void updateOled(bool forward, float smoothedTrim, float ustepsPerSecond, EndstopState es) {
+  float revPerHour = (ustepsPerSecond * 3600.0f) / (STEPS_PER_REV * MICROSTEPS);
+
+  static unsigned long lastDraw = 0;
+  unsigned long now = millis();
+  unsigned long minPeriod = (g_mode == MODE_IDLE) ? 500UL : 2000UL;
+  if (now - lastDraw < minPeriod) return;
+  lastDraw = now;
+
+  u8g2.firstPage();
+  do {
+    u8g2.setFont(u8g2_font_5x8_tf);
+
+    u8g2.setCursor(5, 10);
+    u8g2.print(F("EQ Platform"));
+
+    u8g2.setCursor(5, 20);
+    u8g2.print(F("Mode:"));
+    if (g_mode == MODE_HOMING) {
+      u8g2.print(F("HOME-"));
+      if      (g_home_phase == HOME_PHASE_FAST_APPROACH) u8g2.print(F("FAST"));
+      else if (g_home_phase == HOME_PHASE_BACKOFF)      u8g2.print(F("BACK"));
+      else if (g_home_phase == HOME_PHASE_SLOW_APPROACH)u8g2.print(F("SLOW"));
+      else                                              u8g2.print(F("IDLE"));
+    } else if (g_mode == MODE_TRACKING) {
+      u8g2.print(F("TRACK"));
+    } else {
+      u8g2.print(F("IDLE"));
+    }
+
+    u8g2.setCursor(5, 30);
+    u8g2.print(F("Dir:"));
+    u8g2.print(forward ? F("N") : F("S"));
+
+    int pct = (int)(smoothedTrim * 100.0f + 0.5f);
+    u8g2.setCursor(5, 40);
+    u8g2.print(F("Trim:"));
+    u8g2.print(pct);
+    u8g2.print('%');
+    if (!g_pot_ok) u8g2.print(F(" FIX"));
+
+    u8g2.setCursor(5, 50);
+    u8g2.print(F("Stops H:"));
+    u8g2.print(es.home ? F("1") : F("0"));
+    u8g2.print(F(" E:"));
+    u8g2.print(es.end ? F("1") : F("0"));
+    u8g2.print(F(" "));
+    u8g2.print(es.homeRaw == LOW ? F("L") : F("H"));
+    u8g2.print(es.endRaw  == LOW ? F("L") : F("H"));
+
+    u8g2.setCursor(5, 60);
+    u8g2.print(F("rev/h:"));
+    dtostrf(revPerHour, 5, 2, g_buf);
+    u8g2.print(g_buf);
+  } while (u8g2.nextPage());
+}
+
+// ================================
+//  HOMING (blocking slice stepping)
+// ================================
 static void stepMotorSlice(uint32_t ustepsPerSecond, uint32_t durationMs, bool towardHome) {
   if (ustepsPerSecond < 1 || durationMs == 0) return;
 
-  // How many microsteps to generate in this slice?
   uint32_t stepsThisSlice = (ustepsPerSecond * durationMs) / 1000UL;
   if (stepsThisSlice < 1) stepsThisSlice = 1;
 
-  // Convert rate to interval (us). One STEP pulse = one microstep.
   uint32_t intervalUs = 1000000UL / ustepsPerSecond;
   if (intervalUs <= STEP_PULSE_US + 1) intervalUs = STEP_PULSE_US + 2;
   uint32_t restUs = intervalUs - STEP_PULSE_US;
 
-  // Poll endstops only every N steps to keep motion continuous.
   const uint8_t POLL_N = 32;
 
   for (uint32_t i = 0; i < stepsThisSlice; ++i) {
@@ -359,207 +419,72 @@ static void stepMotorSlice(uint32_t ustepsPerSecond, uint32_t durationMs, bool t
     delayMicroseconds(STEP_PULSE_US);
     stepLowFast();
 
-    if (g_mode == MODE_HOMING && g_home_phase == HOME_PHASE_BACKOFF && g_backoff_remaining > 0) {
+    if (g_home_phase == HOME_PHASE_BACKOFF && g_backoff_remaining > 0) {
       g_backoff_remaining--;
     }
 
-    if (restUs > 0) delayMicroseconds(restUs);
+    if (restUs) delayMicroseconds(restUs);
   }
 }
-float readTrimFactor() {
-  // 8x average of ADC (0..1023) + min/max to detect floating input
-  uint32_t acc = 0;
-  int mn = 1023;
-  int mx = 0;
-  for (int i = 0; i < 8; ++i) {
-    int v = analogRead(PIN_POT);
-    acc += (uint32_t)v;
-    if (v < mn) mn = v;
-    if (v > mx) mx = v;
+
+static void startHoming(unsigned long nowMs) {
+  g_mode = MODE_HOMING;
+  g_home_phase = HOME_PHASE_FAST_APPROACH;
+  g_backoff_remaining = 0;
+  g_homing_started_ms = nowMs;
+
+  // Auto-select direction from last tracking direction
+  if (g_track_dir_valid) {
+    g_home_dir_forward = HOME_DIR_IS_OPPOSITE_OF_TRACK ? !g_track_forward : g_track_forward;
+  } else {
+    g_home_dir_forward = HOME_DIR_FORWARD_FALLBACK;
   }
-  float raw = acc / 8.0f; // 0..1023
+  g_homing_dir_flipped = false;
 
-  // If the pot is not connected, A0 often floats and readings jump around.
-  // Detect this by looking at the spread across samples.
-  const int FLOAT_SPREAD = 60; // counts; tune if needed
-  if ((mx - mn) > FLOAT_SPREAD) {
-    g_pot_ok = false;
-    return TRIM_FALLBACK;
-  }
-
-  // Also treat extreme rails as "no usable trim" (wiring error / short)
-  if (raw < 2.0f || raw > 1021.0f) {
-    g_pot_ok = false;
-    return TRIM_FALLBACK;
-  }
-
-  g_pot_ok = true;
-
-  // Deadband around center to avoid jitter
-  const int CENTER_ADC = 512;  // adjust (e.g. 505..520)
-  const int DEADBAND   = 8;    // ±8 Counts ≈ ±0,8 %
-  if (raw > (CENTER_ADC - DEADBAND) && raw < (CENTER_ADC + DEADBAND)) {
-    raw = CENTER_ADC;
-  }
-
-  // 0..1023 -> TRIM_MIN..TRIM_MAX
-  float t = raw / 1023.0f; // 0..1
-  return TRIM_MIN + (TRIM_MAX - TRIM_MIN) * t;
-}
-// --- OLED helper ---
-void updateOled(bool tracking, bool forward, float smoothedTrim, float targetUsps, bool potOk, EndstopState es, MotionMode mode, HomingPhase phase) {
-  // Compute rev/h from effective speed
-  float revPerHour = (targetUsps * 3600.0f) / (STEPS_PER_REV * MICROSTEPS);
-
-  static unsigned long lastDraw = 0;
-  unsigned long now = millis();
-  // OLED drawing over I2C blocks ms -> keep it slow while motor is moving
-  unsigned long minPeriod = (mode == MODE_IDLE) ? 500UL : 2000UL;
-  if (now - lastDraw < minPeriod) return;
-  lastDraw = now;
-
-  u8g2.firstPage();
-  do {
-    // Smaller font + evenly spaced lines -> looks less cramped on 128x64
-    u8g2.setFont(u8g2_font_5x8_tf);
-
-    // Title
-    u8g2.setCursor(5, 10);
-    u8g2.print(F("EQ Platform"));
-
-    // Mode
-    u8g2.setCursor(5, 20);
-    u8g2.print(F("Mode:"));
-    if (mode == MODE_HOMING) {
-      u8g2.print(F("HOME-"));
-      if (phase == HOME_PHASE_FAST_APPROACH)      u8g2.print(F("FAST"));
-      else if (phase == HOME_PHASE_BACKOFF)       u8g2.print(F("BACK"));
-      else if (phase == HOME_PHASE_SLOW_APPROACH) u8g2.print(F("SLOW"));
-      else                                        u8g2.print(F("IDLE"));
-    } else if (tracking) {
-      u8g2.print(F("TRACK"));
-    } else {
-      u8g2.print(F("IDLE"));
-    }
-
-    // Direction
-    u8g2.setCursor(5, 30);
-    u8g2.print(F("Dir:"));
-    u8g2.print(forward ? F("N" ) : F("S"));
-
-    // Trim
-    int pct = (int)(smoothedTrim * 100.0f + 0.5f);
-    u8g2.setCursor(5, 40);
-    u8g2.print(F("Trim:"));
-    u8g2.print(pct);
-    u8g2.print('%');
-    if (!potOk) u8g2.print(F(" FIX"));
-
-    // Endstops
-    u8g2.setCursor(5, 50);
-    u8g2.print(F("Stops H:"));
-    u8g2.print(es.home ? F("1") : F("0"));
-    u8g2.print(F(" E:"));
-    u8g2.print(es.end ? F("1") : F("0"));
-    // raw levels (H/L) to debug pullups
-    u8g2.print(F(" "));
-    u8g2.print(es.homeRaw == LOW ? F("L") : F("H"));
-    u8g2.print(es.endRaw == LOW ? F("L") : F("H"));
-
-    // rev/h
-    u8g2.setCursor(5, 60);
-    u8g2.print(F("rev/h:"));
-    dtostrf(revPerHour, 5, 2, g_buf2);
-    u8g2.print(g_buf2);
-  } while (u8g2.nextPage());
+  Serial.println(F("Mode: HOMING"));
 }
 
-
-struct DirState {
-  bool selected;  // true if switch is in N or S (valid single contact)
-  bool forward;   // true = North, false = South
-};
-
-DirState readDirState() {
-  pinMode(PIN_DIR_N, INPUT_PULLUP);
-  pinMode(PIN_DIR_S, INPUT_PULLUP);
-
-  bool northSelected = (digitalRead(PIN_DIR_N) == LOW);
-  bool southSelected = (digitalRead(PIN_DIR_S) == LOW);
-
-  // Middle position: neither contact connected -> no selection (no function)
-  if (!northSelected && !southSelected) {
-    return {false, true};
-  }
-
-  // Safety: if both are active, treat as no selection
-  if (northSelected && southSelected) {
-    return {false, true};
-  }
-
-  bool forward = northSelected; // north => forward
-  if (!DIR_LEFT_IS_FORWARD) {
-    forward = !forward;
-  }
-
-  return {true, forward};
-}
-
+// ================================
+//  setup / loop
+// ================================
 void setup() {
   Serial.begin(115200);
   delay(100);
 
-  // --- TMC2209 UART init ---
+  // UART
   TMC_SERIAL.begin(115200);
 
   driver.begin();
-  driver.pdn_disable(true);        // enable UART control
-  driver.I_scale_analog(false);    // use internal current reference (ignore Vref pot)
-  driver.toff(4);                  // enable driver
+  driver.pdn_disable(true);
+  driver.I_scale_analog(false);
+  driver.toff(4);
   driver.blank_time(24);
-  driver.rms_current(600);         // mA RMS (tune for your motor)
+  driver.rms_current(600);
   driver.microsteps((uint16_t)MICROSTEPS);
-  driver.intpol(true);             // interpolate to 256
-  driver.pwm_autoscale(true);      // stealthChop helper
-  driver.en_spreadCycle(false);    // false=stealthChop (quiet), true=spreadCycle (torque)
+  driver.intpol(true);
+  driver.pwm_autoscale(true);
+  driver.en_spreadCycle(false); // stealthChop
   driver.TPOWERDOWN(10);
 
+  // Rates
   BASE_USPS = (STEPS_PER_REV * MICROSTEPS / SIDEREAL_SEC) * (R_MM / ROLLER_R_MM) * SPEED_MULT;
+  HOMING_FAST_USPS    = BASE_USPS * HOME_FAST_MULT;
+  HOMING_BACKOFF_USPS = BASE_USPS * HOME_BACKOFF_MULT;
+  HOMING_SLOW_USPS    = BASE_USPS * HOME_SLOW_MULT;
 
-  // Homing tuning (very fluent + fast)
-  // BASE_USPS is extremely slow (sidereal). Large multipliers are still safe on UNO.
-  HOMING_FAST_USPS    = BASE_USPS * 150.0f; // faster seek to switch
-  HOMING_BACKOFF_USPS = BASE_USPS * 60.0f;  // quick backoff
-  HOMING_SLOW_USPS    = BASE_USPS * 12.0f;  // repeatable trigger, but still brisk
-
-  float uStepsPerHour = BASE_USPS * 3600.0f;
-  float revPerHour    = uStepsPerHour / (STEPS_PER_REV * MICROSTEPS);
-  float minutesPerRev = 60.0f / revPerHour;
-
-  Serial.println(F("=== EQ Platform Driver ==="));
-  Serial.print(F("R (mm): ")); Serial.println(R_MM, 3);
-  Serial.print(F("Roller r (mm): ")); Serial.println(ROLLER_R_MM, 3);
-  Serial.print(F("Steps/rev: ")); Serial.println(STEPS_PER_REV, 0);
-  Serial.print(F("Microsteps: ")); Serial.println(MICROSTEPS, 0);
-  Serial.print(F("Speed multiplier: ")); Serial.println(SPEED_MULT, 3);
-  Serial.print(F("Driver: ")); Serial.println(F("TMC2209 (UART)"));
-  Serial.print(F("RMS current (mA): ")); Serial.println(600);
-  Serial.print(F("Base rate (uSteps/s): ")); Serial.println(BASE_USPS, 3);
-  Serial.print(F("Revolutions per hour: ")); Serial.println(revPerHour, 3);
-  Serial.print(F("Minutes per revolution: ")); Serial.println(minutesPerRev, 2);
-  Serial.print(F("Trim range: ")); Serial.print(TRIM_MIN*100,0);
-  Serial.print(F("% .. ")); Serial.print(TRIM_MAX*100,0); Serial.println(F("%"));
-
+  // Pins
   pinMode(PIN_STEP, OUTPUT);
   pinMode(PIN_DIR,  OUTPUT);
   pinMode(PIN_EN,   OUTPUT);
 
   pinMode(PIN_HOME_BTN, INPUT_PULLUP);
   pinMode(PIN_ENDSTOP_HOME, INPUT_PULLUP);
-  pinMode(PIN_ENDSTOP_END, INPUT_PULLUP);
+  pinMode(PIN_ENDSTOP_END,  INPUT_PULLUP);
 
-  digitalWrite(PIN_EN, HIGH);                // driver disabled at startup
+  digitalWrite(PIN_EN, HIGH); // disabled
+  stepLowFast();
 
+  // Seed direction
   DirState st0 = readDirState();
   if (st0.selected) {
     g_track_forward = st0.forward;
@@ -567,19 +492,12 @@ void setup() {
   }
   digitalWrite(PIN_DIR, g_track_forward ? HIGH : LOW);
 
-  float usps = BASE_USPS * readTrimFactor();
-  applySpeedToInterval(usps);
-  stepLowFast();
+  // Start timer for tracking
+  applySpeedToTimer(BASE_USPS * readTrimFactor());
   initTimer1();
 
-  analogReference(DEFAULT);
-
-  Serial.print(F("Start usps: ")); Serial.println(usps, 3);
-
-  // I2C init
+  // I2C + OLED
   Wire.begin();
-
-  // --- OLED init (U8g2) ---
   u8g2.begin();
   u8g2.setI2CAddress(0x3C << 1);
   u8g2.firstPage();
@@ -588,115 +506,69 @@ void setup() {
     u8g2.setCursor(5, 12); u8g2.print(F("EQ Platform"));
     u8g2.setCursor(5, 28); u8g2.print(F("Boot OK"));
   } while (u8g2.nextPage());
+
+  Serial.println(F("=== EQ Platform ==="));
 }
 
 void loop() {
-  unsigned long nowMs = millis();
+  const unsigned long nowMs = millis();
 
-  // Read inputs
+  // Inputs
   DirState st = readDirState();
   EndstopState es = readEndstops();
 
-  // If the END endstop is hit during TRACKING, stop tracking (go IDLE).
-  // Use an edge so we don't retrigger every loop while the switch stays pressed.
-  static bool lastEndPressed = false;
-  bool endPressed = es.end;
-  if (g_mode == MODE_TRACKING && endPressed && !lastEndPressed) {
-    Serial.println(F("END endstop hit -> stop tracking"));
-    g_mode = MODE_IDLE;
-  }
-  lastEndPressed = endPressed;
-
-  // Debug endstops during homing (helps diagnose wiring/polarity)
-  static unsigned long lastEsDbgMs = 0;
-  if (g_mode == MODE_HOMING && (nowMs - lastEsDbgMs) >= 300) {
-    Serial.print(F("ES raw H=")); Serial.print(es.homeRaw == LOW ? F("LOW") : F("HIGH"));
-    Serial.print(F(" E="));       Serial.print(es.endRaw == LOW ? F("LOW") : F("HIGH"));
-    Serial.print(F("  decoded H=")); Serial.print(es.home ? F("1") : F("0"));
-    Serial.print(F(" E="));         Serial.println(es.end ? F("1") : F("0"));
-    lastEsDbgMs = nowMs;
-  }
-
-  bool btnShort = false;
-  bool btnLong  = false;
+  bool btnShort = false, btnLong = false;
   readButtonEvents(btnShort, btnLong);
 
-  // Update last selected direction from the switch (N/S only)
+  // Remember last valid direction
   if (st.selected) {
     g_track_forward = st.forward;
     g_track_dir_valid = true;
   }
 
-  // --- Mode transitions ---
-  // Long press => start homing
+  // END stop during tracking => stop tracking
+  static bool lastEndPressed = false;
+  if (g_mode == MODE_TRACKING && es.end && !lastEndPressed) {
+    Serial.println(F("END endstop hit -> stop tracking"));
+    g_mode = MODE_IDLE;
+  }
+  lastEndPressed = es.end;
+
+  // Button logic
   if (btnLong) {
-    g_home_latched = true;
-    g_mode = MODE_HOMING;
-    g_home_phase = HOME_PHASE_FAST_APPROACH;
-    g_backoff_remaining = 0;
-    g_homing_started_ms = nowMs;
-
-    // Auto-select homing direction from last tracking direction.
-    // Rule: home is opposite of tracking (north<->south).
-    if (g_track_dir_valid) {
-      g_home_dir_forward = HOME_DIR_IS_OPPOSITE_OF_TRACK ? !g_track_forward : g_track_forward;
-    } else {
-      // Fallback if the switch was never in a valid position yet
-      g_home_dir_forward = HOME_DIR_FORWARD;
-    }
-
-    // Allow one automatic flip if we unexpectedly reach the END endstop during homing.
-    g_homing_dir_flipped = false;
-
-    Serial.println(F("Mode: HOMING (long press)"));
+    startHoming(nowMs);
+  } else if (btnShort && g_mode != MODE_HOMING) {
+    g_mode = (g_mode == MODE_TRACKING) ? MODE_IDLE : MODE_TRACKING;
+    Serial.println(g_mode == MODE_TRACKING ? F("Tracking: ON") : F("Tracking: OFF"));
   }
 
-  // If not homing:
-  // - Switch in N or S selects direction only.
-  // - Switch in middle has no function.
-  // - Short press toggles tracking (start/stop) regardless of switch position.
-  if (g_mode != MODE_HOMING) {
-    if (btnShort) {
-      if (g_mode == MODE_TRACKING) {
-        g_mode = MODE_IDLE;
-        Serial.println(F("Tracking: OFF (button)"));
-      } else {
-        g_mode = MODE_TRACKING;
-        Serial.println(F("Tracking: ON (button)"));
-      }
-    }
-  }
-
-  bool tracking = (g_mode == MODE_TRACKING);
-  bool forward  = g_track_forward;
-
-  // In homing mode we override direction depending on phase.
+  // Direction output
+  bool forward = g_track_forward;
   if (g_mode == MODE_HOMING) {
-    if (g_home_phase == HOME_PHASE_BACKOFF) {
-      forward = !g_home_dir_forward; // move away from home switch
-    } else {
-      forward = g_home_dir_forward;  // move toward home switch
-    }
+    forward = (g_home_phase == HOME_PHASE_BACKOFF) ? !g_home_dir_forward : g_home_dir_forward;
+  }
+  digitalWrite(PIN_DIR, forward ? HIGH : LOW);
+
+  // Determine if motion is toward HOME (for endstop logic)
+  bool towardHome = false;
+  if (g_mode == MODE_HOMING) {
+    towardHome = (g_home_phase != HOME_PHASE_BACKOFF);
+  } else {
+    // for tracking, "towardHome" means "moving in the configured home direction"
+    towardHome = (forward == g_home_dir_forward);
   }
 
-  // Stop immediately if we are trying to move into a pressed endstop.
-  // - If moving toward HOME and home endstop is pressed: stop.
-  // - If moving toward END  and end endstop is pressed: stop.
-  bool towardHome = (forward == g_home_dir_forward);
+  // Block if pushing into an endstop
   bool blocked = (towardHome && es.home) || (!towardHome && es.end);
 
-  // Extra homing safety: during FAST/SLOW approach we should never hit the END stop.
-  // If we do, stop and (once) flip the assumed home direction and try again.
+  // Extra homing safety: END should not be hit during FAST/SLOW approach.
   bool homingApproach = (g_mode == MODE_HOMING) && (g_home_phase != HOME_PHASE_BACKOFF);
   bool endGraceActive = (g_mode == MODE_HOMING) && ((nowMs - g_homing_started_ms) < HOMING_END_GRACE_MS);
   bool hitEndUnexpected = homingApproach && es.end && !endGraceActive;
-  if (hitEndUnexpected) {
-    blocked = true; // stop immediately on END hit during approach
-  }
+  if (hitEndUnexpected) blocked = true;
 
-  // Homing phase state machine (Backoff + slow re-approach)
+  // Homing FSM
   if (g_mode == MODE_HOMING) {
-    // If we hit the END endstop while approaching HOME, our homing direction is wrong.
     if (hitEndUnexpected) {
       if (!g_homing_dir_flipped) {
         g_homing_dir_flipped = true;
@@ -704,66 +576,43 @@ void loop() {
         g_home_phase = HOME_PHASE_FAST_APPROACH;
         g_backoff_remaining = 0;
         g_homing_started_ms = nowMs;
-        Serial.println(F("Homing safety: END reached -> flip direction and retry"));
+        Serial.println(F("Homing safety: END reached -> flip dir"));
       } else {
-        // Already flipped once -> abort to avoid endless bouncing.
-        g_home_phase = HOME_PHASE_IDLE;
-        g_home_latched = false;
-        g_mode = MODE_IDLE;
-        digitalWrite(PIN_EN, HIGH);
         Serial.println(F("Homing error: END reached again, abort"));
+        g_mode = MODE_IDLE;
+        g_home_phase = HOME_PHASE_IDLE;
       }
-      // After handling this condition, do not run the normal phase logic in this loop.
-      // (We will retry on the next loop tick.)
-      // NOTE: return is safe here because we already set EN HIGH above on abort,
-      // and blocked will prevent stepping this tick.
-    }
-    if (hitEndUnexpected) {
-      // handled above
-    } else
-    {
+    } else {
       switch (g_home_phase) {
         case HOME_PHASE_FAST_APPROACH:
-          // When we hit HOME the first time: start backoff.
-          if (es.home && towardHome) {
+          if (es.home) {
             g_home_phase = HOME_PHASE_BACKOFF;
             g_backoff_remaining = HOME_BACKOFF_USTEPS;
-            g_backoff_started_ms = millis();
+            g_backoff_started_ms = nowMs;
             Serial.println(F("Homing: first hit -> BACKOFF"));
           }
           break;
 
-        case HOME_PHASE_BACKOFF: {
-          // Backoff stops when we reach the distance target OR after 2 seconds (whichever comes first).
-          if ((millis() - g_backoff_started_ms) >= HOME_BACKOFF_MAX_MS) {
+        case HOME_PHASE_BACKOFF:
+          if ((nowMs - g_backoff_started_ms) >= HOME_BACKOFF_MAX_MS) {
             g_backoff_remaining = 0;
           }
-
-          // When we've backed off enough AND the switch is released, do slow approach.
           if (g_backoff_remaining == 0 && !es.home) {
             g_home_phase = HOME_PHASE_SLOW_APPROACH;
-            Serial.println(F("Homing: released -> SLOW APPROACH"));
+            Serial.println(F("Homing: released -> SLOW"));
           }
-
-          // If we've hit the limit but the switch is still pressed, abort (stuck switch/mechanics).
           if (g_backoff_remaining == 0 && es.home) {
-            g_home_phase = HOME_PHASE_IDLE;
-            g_home_latched = false;
+            Serial.println(F("Homing error: HOME still pressed after backoff"));
             g_mode = MODE_IDLE;
-            digitalWrite(PIN_EN, HIGH);
-            Serial.println(F("Homing error: backoff limit reached but HOME still pressed"));
+            g_home_phase = HOME_PHASE_IDLE;
           }
           break;
-        }
 
         case HOME_PHASE_SLOW_APPROACH:
-          // Second hit at low speed => final HOME position.
-          if (es.home && towardHome) {
-            g_home_phase = HOME_PHASE_IDLE;
-            g_home_latched = false;
+          if (es.home) {
+            Serial.println(F("Homing done"));
             g_mode = MODE_IDLE;
-            digitalWrite(PIN_EN, HIGH);
-            Serial.println(F("Homing done: precise HOME reached"));
+            g_home_phase = HOME_PHASE_IDLE;
           }
           break;
 
@@ -773,87 +622,52 @@ void loop() {
     }
   }
 
-  // Driver enable
-  // Active LOW: LOW = enabled
-  if (g_mode == MODE_IDLE || blocked) {
-    digitalWrite(PIN_EN, HIGH);
-  } else {
-    digitalWrite(PIN_EN, LOW);
-  }
+  // Driver enable (active LOW)
+  digitalWrite(PIN_EN, (g_mode == MODE_IDLE || blocked) ? HIGH : LOW);
 
-  // Direction pin
-  digitalWrite(PIN_DIR, forward ? HIGH : LOW);
-
-  // Logging (rate-limited)
-  static MotionMode lastMode = MODE_IDLE;
-  static unsigned long lastModeChangeMs = 0;
-  if (g_mode != lastMode && (nowMs - lastModeChangeMs) >= 200) {
-    if (g_mode == MODE_TRACKING) Serial.println(F("Mode: TRACKING"));
-    else if (g_mode == MODE_IDLE) Serial.println(F("Mode: IDLE"));
-    lastMode = g_mode;
-    lastModeChangeMs = nowMs;
-  }
-
-  static bool lastForward = false;
-  static unsigned long lastDirChangeMs = 0;
-  static unsigned long dirChangedAt = 0;
-  if ((g_mode != MODE_IDLE) && forward != lastForward && (nowMs - lastDirChangeMs) >= 200) {
-    Serial.print(F("Direction: "));
-    Serial.println(forward ? F("North") : F("South"));
-    lastForward = forward;
-    lastDirChangeMs = nowMs;
-    dirChangedAt = micros();
-  }
+  // Speed selection
+  float trim = readTrimFactor();
+  static float smoothedTrim = -1.0f;
+  if (smoothedTrim < 0.0f) smoothedTrim = trim;
+  smoothedTrim += 0.2f * (trim - smoothedTrim);
 
   float targetUsps = 0.0f;
-
-  // Read potentiometer -> trim factor and resulting speed (tracking mode)
-  float trimFactor = readTrimFactor();
-
-  // Exponential smoothing (EMA)
-  static float smoothedTrim = -1.0f;
-  if (smoothedTrim < 0.0f) smoothedTrim = trimFactor;  // Initialize on first run
-  const float ALPHA = 0.2f;                             // 0..1, lower = smoother
-  smoothedTrim = smoothedTrim + ALPHA * (trimFactor - smoothedTrim);
-
   if (g_mode == MODE_HOMING) {
-    if (g_home_phase == HOME_PHASE_BACKOFF)      targetUsps = HOMING_BACKOFF_USPS;
-    else if (g_home_phase == HOME_PHASE_SLOW_APPROACH) targetUsps = HOMING_SLOW_USPS;
-    else                                          targetUsps = HOMING_FAST_USPS;
+    if      (g_home_phase == HOME_PHASE_BACKOFF)      targetUsps = HOMING_BACKOFF_USPS;
+    else if (g_home_phase == HOME_PHASE_SLOW_APPROACH)targetUsps = HOMING_SLOW_USPS;
+    else                                              targetUsps = HOMING_FAST_USPS;
   } else {
     targetUsps = BASE_USPS * smoothedTrim;
   }
 
-  applySpeedToInterval(targetUsps);
+  // OLED update
+  updateOled(forward, smoothedTrim, targetUsps, es);
 
-  // Update OLED with endstop/mode info
-  updateOled(tracking, forward, smoothedTrim, targetUsps, g_pot_ok, es, g_mode, g_home_phase);
-
-  // Tell the timer ISR whether it may step.
+  // Step control:
+  //  - TRACKING uses Timer1
+  //  - HOMING uses blocking slices
   g_step_blocked = blocked;
-  // Timer stepping only for TRACKING. HOMING uses blocking slices like the breadboard test.
-  g_step_run = (g_mode == MODE_TRACKING);
+  g_step_run     = (g_mode == MODE_TRACKING);
 
-  // DIR-change guard: pause stepping for 500us after a direction change (TRACKING / timer stepping)
-  if ((long)(micros() - dirChangedAt) < 500) {
-    g_pause_ticks = usToTicks(500);
+  // DIR-change guard for timer-driven tracking
+  static unsigned long lastDirChangeUs = 0;
+  static bool lastForward = false;
+  if (g_mode == MODE_TRACKING && forward != lastForward) {
+    lastForward = forward;
+    lastDirChangeUs = micros();
+  }
+  if (g_mode == MODE_TRACKING && (long)(micros() - lastDirChangeUs) < 500) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { g_pause_ticks = usToTicks(500); }
   }
 
-  // HOMING uses a blocking, short step slice for responsive endstop handling.
-  // This mimics the breadboard test style (small time slices).
+  // Update timer interval only matters for tracking
+  if (g_mode == MODE_TRACKING) {
+    applySpeedToTimer(targetUsps);
+  }
+
+  // Homing stepping slice (continuous within slice)
   if (g_mode == MODE_HOMING && !blocked) {
     uint32_t rate = (targetUsps < 1.0f) ? 1UL : (uint32_t)(targetUsps + 0.5f);
     stepMotorSlice(rate, 20, towardHome);
-  }
-
-  return;
-}
-
-void applySpeedToInterval(float usps) {
-  if (usps < 0.0001f) usps = 0.0001f;
-  uint32_t ticks = (uint32_t)((float)T1_HZ / usps);
-  if (ticks < 20) ticks = 20; // avoid too-fast / zero
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    g_interval_ticks = ticks;
   }
 }
