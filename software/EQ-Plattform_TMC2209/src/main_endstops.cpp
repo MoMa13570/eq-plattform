@@ -32,9 +32,23 @@ const int PIN_HOME_BTN     = 9;   // Home button (momentary to GND)
 const int PIN_ENDSTOP_END  = 10;  // End endstop (NO to GND)
 const int PIN_ENDSTOP_HOME = 11;  // Home endstop (NO to GND)
 
-// Which motor direction moves *towards* the HOME endstop?
-// If homing runs the wrong way, flip this.
+// Endstop polarity:
+// - With NO switch wired to GND + INPUT_PULLUP => pressed == LOW (active_low=true)
+// - With NO switch wired to +5V + external pulldown => pressed == HIGH (active_low=false)
+static constexpr bool ENDSTOP_ACTIVE_LOW = true;
+
+// Fallback: which motor direction moves *towards* the HOME endstop?
+// Used only if we don't yet know the last tracking direction.
 static constexpr bool HOME_DIR_FORWARD = false; // false=South, true=North
+
+// Last selected tracking direction (from the 3-position switch)
+static bool g_track_forward = true;
+static bool g_track_dir_valid = false; // becomes true once the switch was read in a valid N/S position
+
+// Auto-homing direction rule:
+// If you were tracking North, homing goes South (and vice versa).
+// If your mechanics are the other way around, flip this to false.
+static constexpr bool HOME_DIR_IS_OPPOSITE_OF_TRACK = true;
 
 // --- TMC2209 UART (UNO/Nano uses SoftwareSerial) ---
 const int PIN_TMC_RX = 6;             // Arduino RX  <- TMC2209 UART pin
@@ -105,8 +119,6 @@ enum MotionMode : uint8_t {
 
 static MotionMode g_mode = MODE_IDLE;
 
-// Last selected tracking direction (from the 3-position switch)
-static bool g_track_forward = true;
 
 enum HomingPhase : uint8_t {
   HOME_PHASE_IDLE = 0,
@@ -143,16 +155,30 @@ static bool g_home_latched = false;
 static bool g_home_dir_forward = HOME_DIR_FORWARD;
 static bool g_homing_dir_flipped = false;
 
+// When homing starts while sitting on the END endstop, it needs a short moment to move off the switch.
+// During this grace time we do NOT treat END as an "unexpected" hit.
+static unsigned long g_homing_started_ms = 0;
+static constexpr unsigned long HOMING_END_GRACE_MS = 300UL;
+
 struct EndstopState {
-  bool home; // true = pressed
-  bool end;  // true = pressed
+  bool home;      // true = pressed
+  bool end;       // true = pressed
+  uint8_t homeRaw; // HIGH/LOW as read
+  uint8_t endRaw;  // HIGH/LOW as read
 };
 
 static inline EndstopState readEndstops() {
-  // NO switches to GND with INPUT_PULLUP => pressed == LOW
   EndstopState s;
-  s.home = (digitalRead(PIN_ENDSTOP_HOME) == LOW);
-  s.end  = (digitalRead(PIN_ENDSTOP_END) == LOW);
+  s.homeRaw = (uint8_t)digitalRead(PIN_ENDSTOP_HOME);
+  s.endRaw  = (uint8_t)digitalRead(PIN_ENDSTOP_END);
+
+  if (ENDSTOP_ACTIVE_LOW) {
+    s.home = (s.homeRaw == LOW);
+    s.end  = (s.endRaw == LOW);
+  } else {
+    s.home = (s.homeRaw == HIGH);
+    s.end  = (s.endRaw == HIGH);
+  }
   return s;
 }
 
@@ -308,32 +334,36 @@ static void initTimer1() {
 // -------------------- Step helper (blocking slice, used for HOMING only) --------------------
 // Steps at `ustepsPerSecond` for up to `durationMs`, but aborts early if an endstop blocks movement.
 static void stepMotorSlice(uint32_t ustepsPerSecond, uint32_t durationMs, bool towardHome) {
-  if (ustepsPerSecond < 1) return;
+  if (ustepsPerSecond < 1 || durationMs == 0) return;
+
+  // How many microsteps to generate in this slice?
+  uint32_t stepsThisSlice = (ustepsPerSecond * durationMs) / 1000UL;
+  if (stepsThisSlice < 1) stepsThisSlice = 1;
 
   // Convert rate to interval (us). One STEP pulse = one microstep.
   uint32_t intervalUs = 1000000UL / ustepsPerSecond;
   if (intervalUs <= STEP_PULSE_US + 1) intervalUs = STEP_PULSE_US + 2;
+  uint32_t restUs = intervalUs - STEP_PULSE_US;
 
-  uint32_t start = millis();
-  while ((millis() - start) < durationMs) {
-    // Re-check endstops for responsive abort
-    EndstopState es = readEndstops();
-    bool blockedNow = (towardHome && es.home) || (!towardHome && es.end);
-    if (blockedNow) break;
+  // Poll endstops only every N steps to keep motion continuous.
+  const uint8_t POLL_N = 32;
 
-    // One microstep pulse
+  for (uint32_t i = 0; i < stepsThisSlice; ++i) {
+    if ((i % POLL_N) == 0) {
+      EndstopState es = readEndstops();
+      bool blockedNow = (towardHome && es.home) || (!towardHome && es.end);
+      if (blockedNow) break;
+    }
+
     stepHighFast();
     delayMicroseconds(STEP_PULSE_US);
     stepLowFast();
 
-    // Count backoff distance only when we actually step
     if (g_mode == MODE_HOMING && g_home_phase == HOME_PHASE_BACKOFF && g_backoff_remaining > 0) {
       g_backoff_remaining--;
     }
 
-    // Remaining low time
-    uint32_t rest = intervalUs - STEP_PULSE_US;
-    if (rest > 0) delayMicroseconds(rest);
+    if (restUs > 0) delayMicroseconds(restUs);
   }
 }
 float readTrimFactor() {
@@ -431,6 +461,10 @@ void updateOled(bool tracking, bool forward, float smoothedTrim, float targetUsp
     u8g2.print(es.home ? F("1") : F("0"));
     u8g2.print(F(" E:"));
     u8g2.print(es.end ? F("1") : F("0"));
+    // raw levels (H/L) to debug pullups
+    u8g2.print(F(" "));
+    u8g2.print(es.homeRaw == LOW ? F("L") : F("H"));
+    u8g2.print(es.endRaw == LOW ? F("L") : F("H"));
 
     // rev/h
     u8g2.setCursor(5, 60);
@@ -494,9 +528,9 @@ void setup() {
 
   // Homing tuning (very fluent + fast)
   // BASE_USPS is extremely slow (sidereal). Large multipliers are still safe on UNO.
-  HOMING_FAST_USPS    = BASE_USPS * 80.0f;  // faster seek to switch
-  HOMING_BACKOFF_USPS = BASE_USPS * 30.0f;  // quick backoff
-  HOMING_SLOW_USPS    = BASE_USPS * 8.0f;   // still slower for repeatable trigger
+  HOMING_FAST_USPS    = BASE_USPS * 150.0f; // faster seek to switch
+  HOMING_BACKOFF_USPS = BASE_USPS * 60.0f;  // quick backoff
+  HOMING_SLOW_USPS    = BASE_USPS * 12.0f;  // repeatable trigger, but still brisk
 
   float uStepsPerHour = BASE_USPS * 3600.0f;
   float revPerHour    = uStepsPerHour / (STEPS_PER_REV * MICROSTEPS);
@@ -529,6 +563,7 @@ void setup() {
   DirState st0 = readDirState();
   if (st0.selected) {
     g_track_forward = st0.forward;
+    g_track_dir_valid = true;
   }
   digitalWrite(PIN_DIR, g_track_forward ? HIGH : LOW);
 
@@ -562,6 +597,26 @@ void loop() {
   DirState st = readDirState();
   EndstopState es = readEndstops();
 
+  // If the END endstop is hit during TRACKING, stop tracking (go IDLE).
+  // Use an edge so we don't retrigger every loop while the switch stays pressed.
+  static bool lastEndPressed = false;
+  bool endPressed = es.end;
+  if (g_mode == MODE_TRACKING && endPressed && !lastEndPressed) {
+    Serial.println(F("END endstop hit -> stop tracking"));
+    g_mode = MODE_IDLE;
+  }
+  lastEndPressed = endPressed;
+
+  // Debug endstops during homing (helps diagnose wiring/polarity)
+  static unsigned long lastEsDbgMs = 0;
+  if (g_mode == MODE_HOMING && (nowMs - lastEsDbgMs) >= 300) {
+    Serial.print(F("ES raw H=")); Serial.print(es.homeRaw == LOW ? F("LOW") : F("HIGH"));
+    Serial.print(F(" E="));       Serial.print(es.endRaw == LOW ? F("LOW") : F("HIGH"));
+    Serial.print(F("  decoded H=")); Serial.print(es.home ? F("1") : F("0"));
+    Serial.print(F(" E="));         Serial.println(es.end ? F("1") : F("0"));
+    lastEsDbgMs = nowMs;
+  }
+
   bool btnShort = false;
   bool btnLong  = false;
   readButtonEvents(btnShort, btnLong);
@@ -569,6 +624,7 @@ void loop() {
   // Update last selected direction from the switch (N/S only)
   if (st.selected) {
     g_track_forward = st.forward;
+    g_track_dir_valid = true;
   }
 
   // --- Mode transitions ---
@@ -578,10 +634,18 @@ void loop() {
     g_mode = MODE_HOMING;
     g_home_phase = HOME_PHASE_FAST_APPROACH;
     g_backoff_remaining = 0;
+    g_homing_started_ms = nowMs;
 
-    // Start with the configured HOME direction, but allow one automatic flip
-    // if we unexpectedly reach the END endstop during homing.
-    g_home_dir_forward = HOME_DIR_FORWARD;
+    // Auto-select homing direction from last tracking direction.
+    // Rule: home is opposite of tracking (north<->south).
+    if (g_track_dir_valid) {
+      g_home_dir_forward = HOME_DIR_IS_OPPOSITE_OF_TRACK ? !g_track_forward : g_track_forward;
+    } else {
+      // Fallback if the switch was never in a valid position yet
+      g_home_dir_forward = HOME_DIR_FORWARD;
+    }
+
+    // Allow one automatic flip if we unexpectedly reach the END endstop during homing.
     g_homing_dir_flipped = false;
 
     Serial.println(F("Mode: HOMING (long press)"));
@@ -624,7 +688,8 @@ void loop() {
   // Extra homing safety: during FAST/SLOW approach we should never hit the END stop.
   // If we do, stop and (once) flip the assumed home direction and try again.
   bool homingApproach = (g_mode == MODE_HOMING) && (g_home_phase != HOME_PHASE_BACKOFF);
-  bool hitEndUnexpected = homingApproach && es.end;
+  bool endGraceActive = (g_mode == MODE_HOMING) && ((nowMs - g_homing_started_ms) < HOMING_END_GRACE_MS);
+  bool hitEndUnexpected = homingApproach && es.end && !endGraceActive;
   if (hitEndUnexpected) {
     blocked = true; // stop immediately on END hit during approach
   }
@@ -638,6 +703,7 @@ void loop() {
         g_home_dir_forward = !g_home_dir_forward;
         g_home_phase = HOME_PHASE_FAST_APPROACH;
         g_backoff_remaining = 0;
+        g_homing_started_ms = nowMs;
         Serial.println(F("Homing safety: END reached -> flip direction and retry"));
       } else {
         // Already flipped once -> abort to avoid endless bouncing.
