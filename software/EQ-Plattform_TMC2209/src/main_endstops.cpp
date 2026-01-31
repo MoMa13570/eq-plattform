@@ -349,10 +349,10 @@ static void updateOled(bool forward, float smoothedTrim, float ustepsPerSecond, 
   do {
     u8g2.setFont(u8g2_font_5x8_tf);
 
-    u8g2.setCursor(5, 10);
+    u8g2.setCursor(40, 10);
     u8g2.print(F("EQ Platform"));
 
-    u8g2.setCursor(5, 20);
+    u8g2.setCursor(10, 20);
     u8g2.print(F("Mode:"));
     if (g_mode == MODE_HOMING) {
       u8g2.print(F("HOME-"));
@@ -366,27 +366,27 @@ static void updateOled(bool forward, float smoothedTrim, float ustepsPerSecond, 
       u8g2.print(F("IDLE"));
     }
 
-    u8g2.setCursor(5, 30);
+    u8g2.setCursor(10, 30);
     u8g2.print(F("Dir:"));
     u8g2.print(forward ? F("N") : F("S"));
 
     int pct = (int)(smoothedTrim * 100.0f + 0.5f);
-    u8g2.setCursor(5, 40);
+    u8g2.setCursor(10, 40);
     u8g2.print(F("Trim:"));
     u8g2.print(pct);
     u8g2.print('%');
     if (!g_pot_ok) u8g2.print(F(" FIX"));
 
-    u8g2.setCursor(5, 50);
-    u8g2.print(F("Stops H:"));
-    u8g2.print(es.home ? F("1") : F("0"));
-    u8g2.print(F(" E:"));
-    u8g2.print(es.end ? F("1") : F("0"));
-    u8g2.print(F(" "));
-    u8g2.print(es.homeRaw == LOW ? F("L") : F("H"));
-    u8g2.print(es.endRaw  == LOW ? F("L") : F("H"));
+    //u8g2.setCursor(10, 60);
+    //u8g2.print(F("Stops H:"));
+    //u8g2.print(es.home ? F("1") : F("0"));
+    //u8g2.print(F(" E:"));
+    //u8g2.print(es.end ? F("1") : F("0"));
+    //u8g2.print(F(" "));
+    //u8g2.print(es.homeRaw == LOW ? F("L") : F("H"));
+    //u8g2.print(es.endRaw  == LOW ? F("L") : F("H"));
 
-    u8g2.setCursor(5, 60);
+    u8g2.setCursor(10, 50);
     u8g2.print(F("rev/h:"));
     dtostrf(revPerHour, 5, 2, g_buf);
     u8g2.print(g_buf);
