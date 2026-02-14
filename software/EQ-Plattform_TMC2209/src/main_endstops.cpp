@@ -68,10 +68,10 @@ static constexpr float TRIM_FALLBACK = 1.00f;
 static bool g_pot_ok = true;
 
 // ================================
-//  OLED
+//  OLED (U8X8 text-mode for smooth motion)
 // ================================
-U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
-static char g_buf[12];
+U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(U8X8_PIN_NONE);
+static char g_buf[16];
 
 // ================================
 //  Motion state
@@ -334,63 +334,62 @@ static void applySpeedToTimer(float ustepsPerSecond) {
 }
 
 // ================================
-//  OLED
+//  OLED (U8X8 text-mode layout)
 // ================================
 static void updateOled(bool forward, float smoothedTrim, float ustepsPerSecond, EndstopState es) {
+  // Keep updates lightweight to avoid any visible step jitter.
+  static unsigned long lastMs = 0;
+  const unsigned long now = millis();
+  const unsigned long minPeriod = 250UL; // live enough, still light
+  if (now - lastMs < minPeriod) return;
+  lastMs = now;
+
+  // Build lines (16 chars max). One leading space approximates the previous 5px shift.
+  char l0[17], l1[17], l2[17], l3[17], l4[17], l5[17];
+
+  snprintf(l0, sizeof(l0), " EQ Platform");
+
+  if (g_mode == MODE_HOMING) {
+    const char* ph = "IDLE";
+    if      (g_home_phase == HOME_PHASE_FAST_APPROACH) ph = "FAST";
+    else if (g_home_phase == HOME_PHASE_BACKOFF)       ph = "BACK";
+    else if (g_home_phase == HOME_PHASE_SLOW_APPROACH) ph = "SLOW";
+    snprintf(l1, sizeof(l1), " Mode:HOME-%-4s", ph);
+  } else if (g_mode == MODE_TRACKING) {
+    snprintf(l1, sizeof(l1), " Mode:TRACK     ");
+  } else {
+    snprintf(l1, sizeof(l1), " Mode:IDLE      ");
+  }
+
+  snprintf(l2, sizeof(l2), " Dir:%c          ", forward ? 'N' : 'S');
+
+  int pct = (int)(smoothedTrim * 100.0f + 0.5f);
+  if (!g_pot_ok) {
+    snprintf(l3, sizeof(l3), " Trim:%3d%% FIX  ", pct);
+  } else {
+    snprintf(l3, sizeof(l3), " Trim:%3d%%      ", pct);
+  }
+
+  snprintf(l4, sizeof(l4), " Stops H:%d E:%d ", es.home ? 1 : 0, es.end ? 1 : 0);
+
   float revPerHour = (ustepsPerSecond * 3600.0f) / (STEPS_PER_REV * MICROSTEPS);
+  dtostrf(revPerHour, 6, 2, g_buf);
+  snprintf(l5, sizeof(l5), " rev/h:%s", g_buf);
 
-  static unsigned long lastDraw = 0;
-  unsigned long now = millis();
-  unsigned long minPeriod = (g_mode == MODE_IDLE) ? 500UL : 2000UL;
-  if (now - lastDraw < minPeriod) return;
-  lastDraw = now;
+  // Only redraw changed lines to minimize I2C traffic
+  static char p0[17] = "";
+  static char p1[17] = "";
+  static char p2[17] = "";
+  static char p3[17] = "";
+  static char p4[17] = "";
+  static char p5[17] = "";
 
-  u8g2.firstPage();
-  do {
-    u8g2.setFont(u8g2_font_5x8_tf);
-
-    u8g2.setCursor(40, 10);
-    u8g2.print(F("EQ Platform"));
-
-    u8g2.setCursor(10, 20);
-    u8g2.print(F("Mode:"));
-    if (g_mode == MODE_HOMING) {
-      u8g2.print(F("HOME-"));
-      if      (g_home_phase == HOME_PHASE_FAST_APPROACH) u8g2.print(F("FAST"));
-      else if (g_home_phase == HOME_PHASE_BACKOFF)      u8g2.print(F("BACK"));
-      else if (g_home_phase == HOME_PHASE_SLOW_APPROACH)u8g2.print(F("SLOW"));
-      else                                              u8g2.print(F("IDLE"));
-    } else if (g_mode == MODE_TRACKING) {
-      u8g2.print(F("TRACK"));
-    } else {
-      u8g2.print(F("IDLE"));
-    }
-
-    u8g2.setCursor(10, 30);
-    u8g2.print(F("Dir:"));
-    u8g2.print(forward ? F("N") : F("S"));
-
-    int pct = (int)(smoothedTrim * 100.0f + 0.5f);
-    u8g2.setCursor(10, 40);
-    u8g2.print(F("Trim:"));
-    u8g2.print(pct);
-    u8g2.print('%');
-    if (!g_pot_ok) u8g2.print(F(" FIX"));
-
-    //u8g2.setCursor(10, 60);
-    //u8g2.print(F("Stops H:"));
-    //u8g2.print(es.home ? F("1") : F("0"));
-    //u8g2.print(F(" E:"));
-    //u8g2.print(es.end ? F("1") : F("0"));
-    //u8g2.print(F(" "));
-    //u8g2.print(es.homeRaw == LOW ? F("L") : F("H"));
-    //u8g2.print(es.endRaw  == LOW ? F("L") : F("H"));
-
-    u8g2.setCursor(10, 50);
-    u8g2.print(F("rev/h:"));
-    dtostrf(revPerHour, 5, 2, g_buf);
-    u8g2.print(g_buf);
-  } while (u8g2.nextPage());
+  if (strncmp(p0, l0, 16) != 0) { strncpy(p0, l0, 16); p0[16]='\0'; u8x8.drawString(0, 0, p0); }
+  if (strncmp(p1, l1, 16) != 0) { strncpy(p1, l1, 16); p1[16]='\0'; u8x8.drawString(0, 1, p1); }
+  if (strncmp(p2, l2, 16) != 0) { strncpy(p2, l2, 16); p2[16]='\0'; u8x8.drawString(0, 2, p2); }
+  if (strncmp(p3, l3, 16) != 0) { strncpy(p3, l3, 16); p3[16]='\0'; u8x8.drawString(0, 3, p3); }
+  if (strncmp(p4, l4, 16) != 0) { strncpy(p4, l4, 16); p4[16]='\0'; u8x8.drawString(0, 4, p4); }
+  if (strncmp(p5, l5, 16) != 0) { strncpy(p5, l5, 16); p5[16]='\0'; u8x8.drawString(0, 5, p5); }
 }
 
 // ================================
@@ -496,16 +495,15 @@ void setup() {
   applySpeedToTimer(BASE_USPS * readTrimFactor());
   initTimer1();
 
-  // I2C + OLED
+  // I2C + OLED (U8X8 text mode)
   Wire.begin();
-  u8g2.begin();
-  u8g2.setI2CAddress(0x3C << 1);
-  u8g2.firstPage();
-  do {
-    u8g2.setFont(u8g2_font_6x10_tf);
-    u8g2.setCursor(5, 12); u8g2.print(F("EQ Platform"));
-    u8g2.setCursor(5, 28); u8g2.print(F("Boot OK"));
-  } while (u8g2.nextPage());
+  Wire.setClock(400000UL);
+  u8x8.begin();
+  u8x8.setI2CAddress(0x3C << 1);
+  u8x8.setFont(u8x8_font_chroma48medium8_r);
+  u8x8.clear();
+  u8x8.drawString(0, 0, " EQ Platform");
+  u8x8.drawString(0, 1, " Boot OK");
 
   Serial.println(F("=== EQ Platform ==="));
 }
