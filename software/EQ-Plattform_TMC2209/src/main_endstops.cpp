@@ -1,3 +1,4 @@
+
 #include <Arduino.h>
 #include <avr/interrupt.h>
 #include <util/atomic.h>
@@ -38,10 +39,17 @@ static constexpr bool ENDSTOP_ACTIVE_LOW = true;
 //  TMC2209 (UART config, STEP/DIR motion)
 // ================================
 static constexpr float   R_SENSE  = 0.11f;
+// UART slave address (0..3). Must match the driver CFG/MS pins.
 static constexpr uint8_t TMC_ADDR = 0;
 
-static constexpr uint8_t PIN_TMC_RX = 6;
-static constexpr uint8_t PIN_TMC_TX = 7;
+// 2-wire UART wiring:
+//   Arduino D7 (TX) -> TMC RX (optionally via 1k series resistor)
+//   Arduino D6 (RX) <- TMC TX
+static constexpr uint8_t PIN_TMC_RX = 6; // Arduino RX
+static constexpr uint8_t PIN_TMC_TX = 7; // Arduino TX
+
+// TMC2209 UART is 115200 8N1.
+static constexpr uint32_t TMC_BAUD = 115200UL;
 
 SoftwareSerial  TMC_SERIAL(PIN_TMC_RX, PIN_TMC_TX);
 TMC2209Stepper  driver(&TMC_SERIAL, R_SENSE, TMC_ADDR);
@@ -53,7 +61,7 @@ static constexpr bool DIR_LEFT_IS_FORWARD = true; // true=North, false=South
 //  Mechanics / Tracking
 // ================================
 static constexpr float STEPS_PER_REV = 200.0f;
-static constexpr float MICROSTEPS    = 32.0f;
+static constexpr float MICROSTEPS    = 8.0f;
 static constexpr float ROLLER_R_MM   = 10.0f;     // Ø20mm roller
 static constexpr float R_MM          = 572.561f;  // platform geometry
 static constexpr float SIDEREAL_SEC  = 86164.0f;
@@ -102,7 +110,7 @@ static constexpr float HOME_BACKOFF_MULT = 60.0f;
 static constexpr float HOME_SLOW_MULT    = 12.0f;
 
 // Backoff limits
-static constexpr uint32_t HOME_BACKOFF_USTEPS = 1600UL;        // 0.25 motor rev @ 200*32=6400 uSteps/rev
+static constexpr uint32_t HOME_BACKOFF_USTEPS = 1600UL;        // ~0.25 motor rev @ 200*32=6400 uSteps/rev
 static constexpr unsigned long HOME_BACKOFF_MAX_MS = 2000UL;
 
 // Grace period after starting homing during which END pressed is tolerated
@@ -451,8 +459,11 @@ void setup() {
   delay(100);
 
   // UART
-  TMC_SERIAL.begin(115200);
+  TMC_SERIAL.begin(TMC_BAUD);
+  TMC_SERIAL.listen();
+  delay(50);
 
+  // Driver
   driver.begin();
   driver.pdn_disable(true);
   driver.I_scale_analog(false);
@@ -504,8 +515,6 @@ void setup() {
   u8x8.clear();
   u8x8.drawString(0, 0, " EQ Platform");
   u8x8.drawString(0, 1, " Boot OK");
-
-  Serial.println(F("=== EQ Platform ==="));
 }
 
 void loop() {
@@ -669,3 +678,39 @@ void loop() {
     stepMotorSlice(rate, 20, towardHome);
   }
 }
+
+
+/*
+#include <Arduino.h>
+#include <SoftwareSerial.h>
+#include <TMCStepper.h>
+
+static constexpr uint8_t PIN_TMC_RX = 7; // Arduino RX <- TMC TX
+static constexpr uint8_t PIN_TMC_TX = 6; // Arduino TX -> TMC RX
+static constexpr float   R_SENSE = 0.11f;
+static constexpr uint8_t TMC_ADDR = 0;
+
+SoftwareSerial TMC_SERIAL(PIN_TMC_RX, PIN_TMC_TX);
+TMC2209Stepper driver(&TMC_SERIAL, R_SENSE, TMC_ADDR);
+
+void setup() {
+  Serial.begin(115200);
+  delay(200);
+
+  TMC_SERIAL.begin(115200);
+  delay(200);
+
+  driver.begin();
+
+  Serial.print("test_connection: ");
+  Serial.println(driver.test_connection());
+
+  Serial.print("IOIN: 0x");
+  Serial.println(driver.IOIN(), HEX);
+
+  Serial.print("GSTAT: 0x");
+  Serial.println(driver.GSTAT(), HEX);
+}
+
+void loop() {}
+*/
