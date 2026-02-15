@@ -70,8 +70,8 @@ static constexpr float SIDEREAL_SEC  = 86164.0f;
 static constexpr float SPEED_MULT    = 1.0f;
 
 // Pot trim
-static constexpr float TRIM_MIN      = 0.90f;
-static constexpr float TRIM_MAX      = 1.10f;
+static constexpr float TRIM_MIN      = 1.10f;
+static constexpr float TRIM_MAX      = 0.90f;
 static constexpr float TRIM_FALLBACK = 1.00f;
 static bool g_pot_ok = true;
 
@@ -105,9 +105,9 @@ static constexpr bool HOME_DIR_FORWARD_FALLBACK = false; // false=South, true=No
 static constexpr bool HOME_DIR_IS_OPPOSITE_OF_TRACK = true;
 
 // Speeds are derived from BASE_USPS (sidereal) using multipliers.
-static constexpr float HOME_FAST_MULT    = 150.0f;
-static constexpr float HOME_BACKOFF_MULT = 60.0f;
-static constexpr float HOME_SLOW_MULT    = 12.0f;
+static constexpr float HOME_FAST_MULT    = 350.0f;
+static constexpr float HOME_BACKOFF_MULT = 160.0f;
+static constexpr float HOME_SLOW_MULT    = 50.0f;
 
 // Backoff limits
 static constexpr uint32_t HOME_BACKOFF_USTEPS = 1600UL;        // ~0.25 motor rev @ 200*32=6400 uSteps/rev
