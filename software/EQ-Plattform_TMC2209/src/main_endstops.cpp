@@ -1,4 +1,3 @@
-
 #include <Arduino.h>
 #include <avr/interrupt.h>
 #include <util/atomic.h>
@@ -42,9 +41,10 @@ static constexpr float   R_SENSE  = 0.11f;
 // UART slave address (0..3). Must match the driver CFG/MS pins.
 static constexpr uint8_t TMC_ADDR = 0;
 
-// 2-wire UART wiring:
-//   Arduino D7 (TX) -> TMC RX (optionally via 1k series resistor)
-//   Arduino D6 (RX) <- TMC TX
+// 1-wire UART (factory default on BTT TMC2209 V1.3):
+//   Arduino D6 (RX)  -> PDN_UART (Pin 4 on the module)
+//   Arduino D7 (TX)  -> 1k -> PDN_UART (same pin)
+// Note: RX and TX from the Arduino are tied together at PDN_UART externally.
 static constexpr uint8_t PIN_TMC_RX = 6; // Arduino RX
 static constexpr uint8_t PIN_TMC_TX = 7; // Arduino TX
 
@@ -61,7 +61,7 @@ static constexpr bool DIR_LEFT_IS_FORWARD = true; // true=North, false=South
 //  Mechanics / Tracking
 // ================================
 static constexpr float STEPS_PER_REV = 200.0f;
-static constexpr float MICROSTEPS    = 8.0f;
+static constexpr float MICROSTEPS    = 32.0f;
 static constexpr float ROLLER_R_MM   = 10.0f;     // Ø20mm roller
 static constexpr float R_MM          = 572.561f;  // platform geometry
 static constexpr float SIDEREAL_SEC  = 86164.0f;
@@ -458,10 +458,15 @@ void setup() {
   Serial.begin(115200);
   delay(100);
 
-  // UART
+  // UART (1-wire PDN_UART) - keep line HIGH at idle
+  pinMode(PIN_TMC_TX, OUTPUT);
+  digitalWrite(PIN_TMC_TX, HIGH);
+  pinMode(PIN_TMC_RX, INPUT_PULLUP);
+  delay(20);
+
   TMC_SERIAL.begin(TMC_BAUD);
   TMC_SERIAL.listen();
-  delay(50);
+  delay(200);
 
   // Driver
   driver.begin();
@@ -470,7 +475,11 @@ void setup() {
   driver.toff(4);
   driver.blank_time(24);
   driver.rms_current(600);
+
+  // Ensure microsteps are taken from UART registers (not pins)
+  driver.mstep_reg_select(true);
   driver.microsteps((uint16_t)MICROSTEPS);
+
   driver.intpol(true);
   driver.pwm_autoscale(true);
   driver.en_spreadCycle(false); // stealthChop
@@ -678,39 +687,3 @@ void loop() {
     stepMotorSlice(rate, 20, towardHome);
   }
 }
-
-
-/*
-#include <Arduino.h>
-#include <SoftwareSerial.h>
-#include <TMCStepper.h>
-
-static constexpr uint8_t PIN_TMC_RX = 7; // Arduino RX <- TMC TX
-static constexpr uint8_t PIN_TMC_TX = 6; // Arduino TX -> TMC RX
-static constexpr float   R_SENSE = 0.11f;
-static constexpr uint8_t TMC_ADDR = 0;
-
-SoftwareSerial TMC_SERIAL(PIN_TMC_RX, PIN_TMC_TX);
-TMC2209Stepper driver(&TMC_SERIAL, R_SENSE, TMC_ADDR);
-
-void setup() {
-  Serial.begin(115200);
-  delay(200);
-
-  TMC_SERIAL.begin(115200);
-  delay(200);
-
-  driver.begin();
-
-  Serial.print("test_connection: ");
-  Serial.println(driver.test_connection());
-
-  Serial.print("IOIN: 0x");
-  Serial.println(driver.IOIN(), HEX);
-
-  Serial.print("GSTAT: 0x");
-  Serial.println(driver.GSTAT(), HEX);
-}
-
-void loop() {}
-*/
