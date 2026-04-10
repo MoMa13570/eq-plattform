@@ -60,6 +60,14 @@ Die Dokumentation umfasst:
 ➡️ **Zur Aufbauanleitung:**  
 [Assembly / Bauanleitung](https://github.com/MoMa13570/eq-plattform/tree/main/Assembly)
 
+## Softwareinstallation
+
+Am Einfachsten geht die installation über Visual Studio Code. 
+Schritt für Schritt (Visual Stuido Code im Folgenden: VS):
+- VS installieren
+- Im Extension Manager von VS die Extension PlatformIO installieren
+- 
+
 ## Mitmachen & Weiterentwicklung
 
 Die EQ Plattform ist ein offenes Projekt und lebt von Weiterentwicklung und Feedback.  
