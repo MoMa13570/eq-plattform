@@ -31,6 +31,7 @@ Alle relevanten Dateien für den Nachbau und die Weiterentwicklung sind im GitHu
   - [Mechanische Hardware](https://github.com/MoMa13570/eq-plattform/tree/main/hardware/mechanical/normal)
   - [Mechanische Hardware_simple](https://github.com/MoMa13570/eq-plattform/tree/main/hardware/mechanical/simple)
   - [Krteissegmente](https://github.com/MoMa13570/eq-plattform/tree/main/hardware/mechanical/Kreissegmente aus Aluminium)
+  
   Die Dateien im Ordner simple sind vereinfacht, damit diese kostengünstiger produziert werden können. Im Vergleich zur normalen Version fehlen die Einsparungn für die Libelle, den Kompass und die Windrose in der Unterplatte. In der Oberplatte fehlen die Nord- und Südmarkierungen.
 
 - **Stückliste (BOM)**  
