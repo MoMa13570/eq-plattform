@@ -63,10 +63,12 @@ Die Dokumentation umfasst:
 ## Softwareinstallation
 
 Am Einfachsten geht die installation über Visual Studio Code. 
-Schritt für Schritt (Visual Stuido Code im Folgenden: VS):
+Schritt für Schritt (Visual Studio Code im Folgenden: VS):
 - VS installieren
 - Im Extension Manager von VS die Extension PlatformIO installieren
-- 
+- Von Github das Projekt als Zip herunterladen und entpacken
+- In VS im Reiter PlatformIO auf Pick a Folder und den entsprechenden Treiberordner in dem Ordner Software wählen
+- Atdiono anstecken und über Plattformio das Programm hochladen
 
 ## Mitmachen & Weiterentwicklung
 
