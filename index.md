@@ -28,7 +28,9 @@ Alle relevanten Dateien für den Nachbau und die Weiterentwicklung sind im GitHu
 
 - **STEP-Dateien (Mechanik)**  
   CAD-Daten für mechanische Bauteile  
-  [Mechanische Hardware](https://github.com/MoMa13570/eq-plattform/tree/main/hardware/mechanical)
+  [Mechanische Hardware](https://github.com/MoMa13570/eq-plattform/tree/main/hardware/mechanical/normal)
+  [Mechanische Hardware_simple](https://github.com/MoMa13570/eq-plattform/tree/main/hardware/mechanical/simple)
+  [Krteissegmente](https://github.com/MoMa13570/eq-plattform/tree/main/hardware/mechanical/Kreissegmente aus Aluminium)
 
 - **Stückliste (BOM)**  
   Übersicht aller benötigten Bauteile  
