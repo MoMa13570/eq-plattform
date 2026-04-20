@@ -4,7 +4,7 @@
 
 ## Über das Projekt
 
-Die **EQ Plattform** st zum Nachführen von Dobson teleskopen, um die visuelle Beobachtung zu verbessern oder fotogarfisch nutzbar zu machen.
+Die **EQ Plattform** ist zum Nachführen von Dobson-Teleskopen, um die visuelle Beobachtung zu verbessern oder fotogarfisch nutzbar zu machen.
 
 Unsere EQ-Plattform ist vergleihsweise massiv gebaut, damit sie auch schwere Dobson tragen kann. 
 Für den Antrieb gibt es 2 Möglichkeiten:
@@ -72,7 +72,7 @@ Schritt für Schritt (Visual Studio Code im Folgenden: VS):
 - Im Extension Manager von VS die Extension PlatformIO installieren
 - Von Github das Projekt als Zip herunterladen und entpacken
 - In VS im Reiter PlatformIO auf Pick a Folder und den entsprechenden Treiberordner in dem Ordner Software wählen
-- Atdiono anstecken und über Plattformio das Programm hochladen
+- Arduino anstecken und über Plattformio das Programm hochladen
 
 ## Mitmachen & Weiterentwicklung
 
