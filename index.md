@@ -184,8 +184,7 @@
   <h2>Worum es geht</h2>
   <p>
     Die Plattform ist bewusst robust konstruiert, damit sie auch schwere Dobson-Teleskope tragen kann.
-    Für den Antrieb stehen zwei Varianten zur Verfügung: ein einfaches EQ2-Motor-Kit oder eine eigene
-    Elektronik mit NEMA17-Schrittmotor.
+    Der Antrieb erfolgt über eine eigene Elektronik mit NEMA17-Schrittmotor und TMC2209-Treiber.
   </p>
 
   <div class="eq-grid">
@@ -194,8 +193,8 @@
       <p>Mechanik mit austauschbaren Teilen und STEP-Dateien für Nachbau, Anpassung und Fertigung.</p>
     </div>
     <div class="eq-card">
-      <h3>Zwei Antriebswege</h3>
-      <p>Einsteigerfreundlich mit EQ2-Motor-Kit oder präziser mit PCB, TMC2209-Treiber und NEMA17-Motor.</p>
+      <h3>Präziser Schrittmotor-Antrieb</h3>
+      <p>Die Plattform nutzt eine eigene PCB mit TMC2209-Treiber und NEMA17-Schrittmotor.</p>
     </div>
     <div class="eq-card">
       <h3>Offen dokumentiert</h3>
@@ -257,7 +256,7 @@
       </p>
     </div>
     <div class="eq-card">
-      <h3>Optionale PCB</h3>
+      <h3>PCB-Antrieb</h3>
       <p>
         Für den Schrittmotor-Aufbau stehen Schaltplan, Platinenansicht, Gehäuse und Firmware bereit.
       </p>
@@ -268,7 +267,7 @@
 <section class="eq-section">
   <h2>Elektronik</h2>
   <p>
-    Die Leiterplatte ist optional. Sie richtet sich an den Aufbau mit NEMA17-Schrittmotor und TMC2209-Treiber.
+    Die Leiterplatte steuert den Aufbau mit NEMA17-Schrittmotor und TMC2209-Treiber.
   </p>
   <div class="eq-image-grid">
     <img src="hardware/circuitboard/PCB_2D.png" alt="PCB-Layout der EQ Plattform">
