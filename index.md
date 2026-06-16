@@ -170,6 +170,7 @@
       und kann je nach Aufbau auch für einfache fotografische Anwendungen genutzt werden.
     </p>
     <div class="eq-actions">
+      <a class="eq-button" href="build_instructions/buildinginstructions_EQ-Plattform.pdf">Bauanleitung PDF</a>
       <a class="eq-button" href="#ressourcen">Dateien ansehen</a>
       <a class="eq-button secondary" href="BOM/Teileliste_DM%20EQ%20Plattform.csv">Stückliste ansehen</a>
       <a class="eq-button secondary" href="https://github.com/MoMa13570/eq-plattform">GitHub-Repository</a>
@@ -232,10 +233,22 @@
       <ul>
         <li><a href="https://github.com/MoMa13570/eq-plattform/tree/main/software">Firmware für Arduino und PlatformIO</a></li>
         <li><a href="BOM/Teileliste_DM%20EQ%20Plattform.csv">Stückliste als CSV</a></li>
+        <li><a href="build_instructions/buildinginstructions_EQ-Plattform.pdf">Bauanleitung als PDF</a></li>
         <li><a href="README.md">Repository-Übersicht</a></li>
       </ul>
     </div>
   </div>
+</section>
+
+<section class="eq-section">
+  <h2>Bauanleitung</h2>
+  <p>
+    Die Bauanleitung führt Schritt für Schritt durch den mechanischen Aufbau und die Inbetriebnahme
+    der EQ Plattform. Sie ist als PDF verfügbar und kann direkt im Browser geöffnet oder heruntergeladen werden.
+  </p>
+  <p class="eq-highlight">
+    <a href="build_instructions/buildinginstructions_EQ-Plattform.pdf">Bauanleitung als PDF öffnen</a>
+  </p>
 </section>
 
 <section class="eq-section">
