@@ -132,6 +132,44 @@
     padding-left: 1.1rem;
   }
 
+  .eq-steps {
+    counter-reset: eq-step;
+  }
+
+  .eq-step {
+    position: relative;
+    padding-left: 3.4rem;
+  }
+
+  .eq-step::before {
+    counter-increment: eq-step;
+    content: counter(eq-step);
+    position: absolute;
+    top: 1.05rem;
+    left: 1.1rem;
+    display: grid;
+    width: 1.75rem;
+    height: 1.75rem;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--eq-accent);
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-weight: 800;
+  }
+
+  .eq-component-list {
+    columns: 2;
+    margin: 1rem 0 0;
+    padding-left: 1.1rem;
+  }
+
+  .eq-component-list li {
+    break-inside: avoid;
+    margin-bottom: 0.35rem;
+    color: var(--eq-muted);
+  }
+
   .eq-highlight {
     padding: 1.2rem;
     border-left: 0.35rem solid var(--eq-warm);
@@ -151,6 +189,10 @@
     .eq-grid,
     .eq-image-grid {
       grid-template-columns: 1fr;
+    }
+
+    .eq-component-list {
+      columns: 1;
     }
 
     .eq-hero {
@@ -203,6 +245,10 @@
       <p>CAD-Daten, Stückliste, Schaltplan, Leiterplatte und Firmware liegen frei im Repository.</p>
     </div>
   </div>
+  <p class="eq-highlight">
+    Aktuell empfohlener Aufbau: NEMA17-Schrittmotor mit Steuerplatine. Die frühere alternative Motorvariante
+    hat sich nicht bewährt und wird nicht weiter empfohlen.
+  </p>
 </section>
 
 <section class="eq-section" id="ressourcen">
@@ -237,6 +283,58 @@
         <li><a href="build_instructions/buildinginstructions_EQ-Plattform.pdf">Bauanleitung als PDF</a></li>
         <li><a href="README.md">Repository-Übersicht</a></li>
       </ul>
+    </div>
+  </div>
+</section>
+
+<section class="eq-section">
+  <h2>Benötigte Hauptkomponenten</h2>
+  <p>
+    Die vollständige Teileliste steht in der BOM und in der Bauanleitung. Für die erste Einschätzung sind vor
+    allem diese Baugruppen wichtig:
+  </p>
+  <div class="eq-card">
+    <ul class="eq-component-list">
+      <li>CNC-gefräste Grundplatte und Tischplatte</li>
+      <li>Zwei Kreissegmente aus Holz oder Aluminium</li>
+      <li>Linearwellen Ø20 mm und UCP204-Stehlager</li>
+      <li>Kugelgelenk M10 für das Südlager</li>
+      <li>Verstellbare Möbelfüße</li>
+      <li>NEMA17-Schrittmotor mit Winkelhalter</li>
+      <li>GT2-Riemen und passende Pulleys</li>
+      <li>Steuerplatine mit Arduino Nano und TMC2209</li>
+      <li>OLED-Display, Taster, Schalter und Potentiometer</li>
+      <li>Endstops, Kabel und JST-XH-Steckverbinder</li>
+    </ul>
+  </div>
+</section>
+
+<section class="eq-section">
+  <h2>Aufbau in 5 Schritten</h2>
+  <p>
+    Die Website zeigt nur den Überblick. Die genauen Maße, Bohrungen, Montageschritte und Elektronikdetails
+    stehen in der PDF-Bauanleitung.
+  </p>
+  <div class="eq-grid eq-steps">
+    <div class="eq-card eq-step">
+      <h3>Grundplatte vorbereiten</h3>
+      <p>Möbelfüße montieren und die Stehlager zunächst handfest auf der Grundplatte befestigen.</p>
+    </div>
+    <div class="eq-card eq-step">
+      <h3>Linearwellen einsetzen</h3>
+      <p>Linearwellen durch die Stehlager schieben, ausrichten und anschließend mit den Madenschrauben fixieren.</p>
+    </div>
+    <div class="eq-card eq-step">
+      <h3>Tischplatte vorbereiten</h3>
+      <p>Gewindeeinsatz setzen, Kugelgelenk einschrauben und die bewegliche Tischplatte für das Südlager vorbereiten.</p>
+    </div>
+    <div class="eq-card eq-step">
+      <h3>Kreissegmente montieren</h3>
+      <p>Kreissegmente mit Gewindeeinsätzen an der Tischplatte verschrauben und das Südlager montieren.</p>
+    </div>
+    <div class="eq-card eq-step">
+      <h3>Antrieb anbauen</h3>
+      <p>Motorhalter, GT2-Riemen, Elektronikgehäuse und Endstops montieren und anschließend die Plattform prüfen.</p>
     </div>
   </div>
 </section>
