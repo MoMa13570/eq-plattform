@@ -10,6 +10,10 @@
     --eq-warm: #f4b24c;
   }
 
+  .site-header {
+    display: none;
+  }
+
   .eq-page {
     color: var(--eq-ink);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
