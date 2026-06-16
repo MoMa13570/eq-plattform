@@ -166,8 +166,8 @@
     <p class="eq-kicker">Open-Source-Hardware für Dobson-Teleskope</p>
     <h1>EQ Plattform</h1>
     <p class="eq-lead">
-      Eine stabile, modulare Nachführplattform für Dobson-Teleskope. Sie verbessert die visuelle Beobachtung
-      und kann je nach Aufbau auch für einfache fotografische Anwendungen genutzt werden.
+      Eine stabile, modulare Nachführplattform für Dobson-Teleskope. Sie kompensiert die scheinbare
+      Bewegung des Sternenhimmels und hält Objekte dadurch länger im Gesichtsfeld.
     </p>
     <div class="eq-actions">
       <a class="eq-button" href="build_instructions/buildinginstructions_EQ-Plattform.pdf">Bauanleitung PDF</a>
@@ -184,14 +184,15 @@
 <section class="eq-section">
   <h2>Worum es geht</h2>
   <p>
-    Die Plattform ist bewusst robust konstruiert, damit sie auch schwere Dobson-Teleskope tragen kann.
-    Der Antrieb erfolgt über eine eigene Elektronik mit NEMA17-Schrittmotor und TMC2209-Treiber.
+    Die EQ Plattform besteht aus einer festen Grundplatte und einer beweglich gelagerten Tischplatte,
+    auf der das Teleskop steht. Sie ist bewusst robust konstruiert, damit sie auch schwere Dobson-Teleskope
+    tragen kann. Der Antrieb erfolgt über eine eigene Elektronik mit NEMA17-Schrittmotor und TMC2209-Treiber.
   </p>
 
   <div class="eq-grid">
     <div class="eq-card">
-      <h3>Massiver Aufbau</h3>
-      <p>Mechanik mit austauschbaren Teilen und STEP-Dateien für Nachbau, Anpassung und Fertigung.</p>
+      <h3>Mechanischer Aufbau</h3>
+      <p>Grundplatte, Tischplatte, Linearwellen, Stehlager, Südlager und Kreissegmente bilden die Plattform.</p>
     </div>
     <div class="eq-card">
       <h3>Präziser Schrittmotor-Antrieb</h3>
@@ -243,9 +244,24 @@
 <section class="eq-section">
   <h2>Bauanleitung</h2>
   <p>
-    Die Bauanleitung führt Schritt für Schritt durch den mechanischen Aufbau und die Inbetriebnahme
-    der EQ Plattform. Sie ist als PDF verfügbar und kann direkt im Browser geöffnet oder heruntergeladen werden.
+    Die Bauanleitung führt auf 17 Seiten durch Funktionsprinzip, benötigte Bauteile, mechanischen Aufbau,
+    Motorisierung, Elektronikgehäuse, Endstops und Abschlussprüfung. Sie ist als PDF verfügbar und kann direkt
+    im Browser geöffnet oder heruntergeladen werden.
   </p>
+  <div class="eq-grid">
+    <div class="eq-card">
+      <h3>Bauteile</h3>
+      <p>Übersicht über CNC-gefräste Holzteile, mechanische Komponenten und Teile für den NEMA17-Antrieb.</p>
+    </div>
+    <div class="eq-card">
+      <h3>Zusammenbau</h3>
+      <p>Schritte für Möbelfüße, Stehlager, Linearwellen, Tischplatte, Kreissegmente und Südlager.</p>
+    </div>
+    <div class="eq-card">
+      <h3>Motorisierung</h3>
+      <p>Hinweise zu Steuerplatine, Lötarbeiten, Gehäuse, Motormontage und Endstops.</p>
+    </div>
+  </div>
   <p class="eq-highlight">
     <a href="build_instructions/buildinginstructions_EQ-Plattform.pdf">Bauanleitung als PDF öffnen</a>
   </p>
