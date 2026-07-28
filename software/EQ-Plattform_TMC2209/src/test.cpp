@@ -87,7 +87,7 @@ void loop() {
     digitalWrite(PIN_DIR, HIGH);  // rotate right
   }
 
-  // step while switch is held
+  // Raw motor test frequency; intentionally independent of platform gearing.
   stepMotor(600, 20);  // small time slice for responsive stop
 }
 

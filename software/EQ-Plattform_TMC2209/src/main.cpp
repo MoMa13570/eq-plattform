@@ -39,7 +39,10 @@ TMC2209Stepper driver(&TMC_SERIAL, R_SENSE, TMC_ADDR);
 const float STEPS_PER_REV = 200.0f;   // NEMA17
 const float MICROSTEPS    = 32.0f;    // TMC2209 set via UART (driver.microsteps())
 const float ROLLER_R_MM   = 10.0f;     // Ø20 mm -> r=10 mm. Adjust to your shaft diameter!
-const float R_MM          = 572.561f; // Pivot->contact radius (mm). Adjust to your geometry! (distance center south bearing to center of arc)
+const float R_MM          = 552.068f; // Pivot->contact radius (mm). Adjust to your geometry! (distance center south bearing to center of arc)
+constexpr float MOTOR_PULLEY_TEETH = 16.0f;
+constexpr float SHAFT_PULLEY_TEETH = 66.0f;
+constexpr float GEAR_RATIO = SHAFT_PULLEY_TEETH / MOTOR_PULLEY_TEETH;
 
 // Sternzeit
 const float SIDEREAL_SEC  = 86164.0f;
@@ -70,6 +73,11 @@ static char g_buf2[12];
 // Helpers
 static inline float clampf(float x, float a, float b) {
   return (x < a) ? a : (x > b) ? b : x;
+}
+
+static float shaftRevPerHourFromMotorUsps(float motorUstepsPerSecond) {
+  return (motorUstepsPerSecond * 3600.0f)
+       / (STEPS_PER_REV * MICROSTEPS * GEAR_RATIO);
 }
 
 void applySpeedToInterval(float usps);
@@ -115,8 +123,8 @@ float readTrimFactor() {
 }
 // --- OLED helper ---
 void updateOled(bool tracking, bool forward, float smoothedTrim, float targetUsps, bool potOk) {
-  // Compute rev/h from effective speed
-  float revPerHour = (targetUsps * 3600.0f) / (STEPS_PER_REV * MICROSTEPS);
+  // User-facing speed is always the drive-shaft speed.
+  float revPerHour = shaftRevPerHourFromMotorUsps(targetUsps);
 
   static unsigned long lastDraw = 0;
   unsigned long now = millis();
@@ -200,23 +208,31 @@ void setup() {
   driver.en_spreadCycle(false);    // false=stealthChop (quiet), true=spreadCycle (torque)
   driver.TPOWERDOWN(10);
 
-  BASE_USPS = (STEPS_PER_REV * MICROSTEPS / SIDEREAL_SEC) * (R_MM / ROLLER_R_MM) * SPEED_MULT;
+  BASE_USPS = (STEPS_PER_REV * MICROSTEPS / SIDEREAL_SEC)
+            * (R_MM / ROLLER_R_MM)
+            * GEAR_RATIO
+            * SPEED_MULT;
 
   float uStepsPerHour = BASE_USPS * 3600.0f;
-  float revPerHour    = uStepsPerHour / (STEPS_PER_REV * MICROSTEPS);
-  float minutesPerRev = 60.0f / revPerHour;
+  float motorRevPerHour = uStepsPerHour / (STEPS_PER_REV * MICROSTEPS);
+  float shaftRevPerHour = motorRevPerHour / GEAR_RATIO;
+  float minutesPerRev = 60.0f / shaftRevPerHour;
 
   Serial.println(F("=== EQ Platform Driver ==="));
   Serial.print(F("R (mm): ")); Serial.println(R_MM, 3);
   Serial.print(F("Roller r (mm): ")); Serial.println(ROLLER_R_MM, 3);
   Serial.print(F("Steps/rev: ")); Serial.println(STEPS_PER_REV, 0);
   Serial.print(F("Microsteps: ")); Serial.println(MICROSTEPS, 0);
+  Serial.print(F("Motor pulley teeth: ")); Serial.println(MOTOR_PULLEY_TEETH, 0);
+  Serial.print(F("Shaft pulley teeth: ")); Serial.println(SHAFT_PULLEY_TEETH, 0);
+  Serial.print(F("Gear ratio: ")); Serial.println(GEAR_RATIO, 3);
   Serial.print(F("Speed multiplier: ")); Serial.println(SPEED_MULT, 3);
   Serial.print(F("Driver: ")); Serial.println(F("TMC2209 (UART)"));
   Serial.print(F("RMS current (mA): ")); Serial.println(600);
-  Serial.print(F("Base rate (uSteps/s): ")); Serial.println(BASE_USPS, 3);
-  Serial.print(F("Revolutions per hour: ")); Serial.println(revPerHour, 3);
-  Serial.print(F("Minutes per revolution: ")); Serial.println(minutesPerRev, 2);
+  Serial.print(F("Motor base rate (uSteps/s): ")); Serial.println(BASE_USPS, 3);
+  Serial.print(F("Motor revolutions per hour: ")); Serial.println(motorRevPerHour, 3);
+  Serial.print(F("Shaft revolutions per hour: ")); Serial.println(shaftRevPerHour, 3);
+  Serial.print(F("Shaft minutes per revolution: ")); Serial.println(minutesPerRev, 2);
   Serial.print(F("Trim range: ")); Serial.print(TRIM_MIN*100,0);
   Serial.print(F("% .. ")); Serial.print(TRIM_MAX*100,0); Serial.println(F("%"));
 

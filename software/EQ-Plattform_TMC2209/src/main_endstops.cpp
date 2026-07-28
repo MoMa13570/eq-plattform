@@ -54,8 +54,20 @@ static constexpr uint32_t TMC_BAUD = 115200UL;
 SoftwareSerial  TMC_SERIAL(PIN_TMC_RX, PIN_TMC_TX);
 TMC2209Stepper  driver(&TMC_SERIAL, R_SENSE, TMC_ADDR);
 
+// Motor current profiles (mA RMS). Higher current gives more torque, but also more heat.
+static constexpr uint16_t MOTOR_CURRENT_TRACKING_MA    = 1100;
+static constexpr uint16_t MOTOR_CURRENT_HOMING_FAST_MA = 1200;
+static constexpr uint16_t MOTOR_CURRENT_HOMING_SLOW_MA = 1100;
+
 // If your switch orientation is reversed, flip this.
 static constexpr bool DIR_LEFT_IS_FORWARD = true; // true=North, false=South
+
+// Reverse only the electrical motor direction while keeping North/South semantics intact.
+static constexpr bool MOTOR_DIRECTION_INVERTED = true;
+
+static uint8_t motorDirectionLevel(bool forward) {
+  return (forward ^ MOTOR_DIRECTION_INVERTED) ? HIGH : LOW;
+}
 
 // ================================
 //  Mechanics / Tracking
@@ -63,16 +75,27 @@ static constexpr bool DIR_LEFT_IS_FORWARD = true; // true=North, false=South
 static constexpr float STEPS_PER_REV = 200.0f;
 static constexpr float MICROSTEPS    = 32.0f;
 static constexpr float ROLLER_R_MM   = 10.0f;     // Ø20mm roller
-static constexpr float R_MM          = 572.561f;  // platform geometry
+static constexpr float R_MM          = 561.263f;  // platform geometry
+constexpr float MOTOR_PULLEY_TEETH = 16.0f;
+constexpr float SHAFT_PULLEY_TEETH = 66.0f;
+// Motor revolutions per drive-shaft revolution.
+constexpr float GEAR_RATIO = SHAFT_PULLEY_TEETH / MOTOR_PULLEY_TEETH;
 static constexpr float SIDEREAL_SEC  = 86164.0f;
+static constexpr float LUNAR_SEC     = 89428.0f;  // mean lunar day
+static constexpr float LUNAR_RATE_FACTOR = SIDEREAL_SEC / LUNAR_SEC;
 
 // Multiplier for bench tests (1.0 for real tracking)
 static constexpr float SPEED_MULT    = 1.0f;
 
 // Pot trim
-static constexpr float TRIM_MIN      = 1.10f;
-static constexpr float TRIM_MAX      = 0.90f;
+static constexpr float TRIM_PLUS     = 1.20f;
+static constexpr float TRIM_CENTER   = 1.00f;
+static constexpr float TRIM_MINUS    = 0.80f;
 static constexpr float TRIM_FALLBACK = 1.00f;
+static constexpr int POT_ADC_PLUS    = 0;
+static constexpr int POT_ADC_CENTER  = 512;
+// Calibrated from the observed 94% at the physical minus end position.
+static constexpr int POT_ADC_MINUS   = 665;
 static bool g_pot_ok = true;
 
 // ================================
@@ -93,6 +116,7 @@ static HomingPhase g_home_phase = HOME_PHASE_IDLE;
 // Last selected direction from the switch
 static bool g_track_forward   = true;
 static bool g_track_dir_valid = false;
+static bool g_lunar_tracking  = false;
 
 // Fallback home direction (only used before a valid track direction was ever read)
 static constexpr bool HOME_DIR_FORWARD_FALLBACK = false; // false=South, true=North
@@ -109,8 +133,10 @@ static constexpr float HOME_FAST_MULT    = 350.0f;
 static constexpr float HOME_BACKOFF_MULT = 160.0f;
 static constexpr float HOME_SLOW_MULT    = 50.0f;
 
-// Backoff limits
-static constexpr uint32_t HOME_BACKOFF_USTEPS = 1600UL;        // ~0.25 motor rev @ 200*32=6400 uSteps/rev
+// Backoff distance expressed at the drive shaft, independent of the belt ratio.
+static constexpr float HOME_BACKOFF_SHAFT_REVS = 0.25f;
+static constexpr uint32_t HOME_BACKOFF_USTEPS =
+  (uint32_t)(HOME_BACKOFF_SHAFT_REVS * STEPS_PER_REV * MICROSTEPS * GEAR_RATIO + 0.5f);
 static constexpr unsigned long HOME_BACKOFF_MAX_MS = 2000UL;
 
 // Grace period after starting homing during which END pressed is tolerated
@@ -288,7 +314,11 @@ static void readButtonEvents(bool &shortPress, bool &longPress) {
   lastPressed = pressed;
 }
 
-struct DirState { bool selected; bool forward; };
+struct DirState {
+  bool selected;
+  bool center;
+  bool forward;
+};
 
 static DirState readDirState() {
   pinMode(PIN_DIR_N, INPUT_PULLUP);
@@ -297,12 +327,12 @@ static DirState readDirState() {
   bool north = (digitalRead(PIN_DIR_N) == LOW);
   bool south = (digitalRead(PIN_DIR_S) == LOW);
 
-  if (!north && !south) return {false, true};
-  if ( north &&  south) return {false, true};
+  if (!north && !south) return {false, true,  true};
+  if ( north &&  south) return {false, false, true};
 
   bool forward = north; // north => forward
   if (!DIR_LEFT_IS_FORWARD) forward = !forward;
-  return {true, forward};
+  return {true, false, forward};
 }
 
 static float readTrimFactor() {
@@ -319,19 +349,29 @@ static float readTrimFactor() {
   float raw = acc / 8.0f;
 
   const int FLOAT_SPREAD = 60;
-  if ((mx - mn) > FLOAT_SPREAD || raw < 2.0f || raw > 1021.0f) {
+  if ((mx - mn) > FLOAT_SPREAD) {
     g_pot_ok = false;
     return TRIM_FALLBACK;
   }
   g_pot_ok = true;
 
   // deadband
-  const int CENTER_ADC = 512;
-  const int DEADBAND   = 8;
-  if (raw > (CENTER_ADC - DEADBAND) && raw < (CENTER_ADC + DEADBAND)) raw = CENTER_ADC;
+  const int DEADBAND = 8;
+  if (raw > (POT_ADC_CENTER - DEADBAND) && raw < (POT_ADC_CENTER + DEADBAND)) {
+    raw = POT_ADC_CENTER;
+  }
 
-  float t = raw / 1023.0f;
-  return TRIM_MIN + (TRIM_MAX - TRIM_MIN) * t;
+  if (raw <= POT_ADC_CENTER) {
+    float t = (raw - POT_ADC_PLUS) / (float)(POT_ADC_CENTER - POT_ADC_PLUS);
+    if (t < 0.0f) t = 0.0f;
+    if (t > 1.0f) t = 1.0f;
+    return TRIM_PLUS + (TRIM_CENTER - TRIM_PLUS) * t;
+  }
+
+  float t = (raw - POT_ADC_CENTER) / (float)(POT_ADC_MINUS - POT_ADC_CENTER);
+  if (t < 0.0f) t = 0.0f;
+  if (t > 1.0f) t = 1.0f;
+  return TRIM_CENTER + (TRIM_MINUS - TRIM_CENTER) * t;
 }
 
 static void applySpeedToTimer(float ustepsPerSecond) {
@@ -339,6 +379,52 @@ static void applySpeedToTimer(float ustepsPerSecond) {
   uint32_t ticks = (uint32_t)((float)T1_HZ / ustepsPerSecond);
   if (ticks < 20) ticks = 20;
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { g_interval_ticks = ticks; }
+}
+
+static void applyDriverProfile() {
+  enum DriverProfile : uint8_t {
+    PROFILE_DISABLED = 0,
+    PROFILE_TRACKING,
+    PROFILE_HOMING_FAST,
+    PROFILE_HOMING_SLOW
+  };
+
+  DriverProfile profile = PROFILE_DISABLED;
+  if (g_mode == MODE_TRACKING) {
+    profile = PROFILE_TRACKING;
+  } else if (g_mode == MODE_HOMING) {
+    profile = (g_home_phase == HOME_PHASE_SLOW_APPROACH) ? PROFILE_HOMING_SLOW : PROFILE_HOMING_FAST;
+  }
+
+  static DriverProfile lastProfile = PROFILE_DISABLED;
+  if (profile == lastProfile) return;
+  lastProfile = profile;
+
+  switch (profile) {
+    case PROFILE_TRACKING:
+      driver.rms_current(MOTOR_CURRENT_TRACKING_MA);
+      driver.en_spreadCycle(false); // quiet tracking
+      break;
+
+    case PROFILE_HOMING_FAST:
+      driver.rms_current(MOTOR_CURRENT_HOMING_FAST_MA);
+      driver.en_spreadCycle(true); // more torque for faster movement
+      break;
+
+    case PROFILE_HOMING_SLOW:
+      driver.rms_current(MOTOR_CURRENT_HOMING_SLOW_MA);
+      driver.en_spreadCycle(true);
+      break;
+
+    case PROFILE_DISABLED:
+    default:
+      break;
+  }
+}
+
+static float shaftRevPerHourFromMotorUsps(float motorUstepsPerSecond) {
+  return (motorUstepsPerSecond * 3600.0f)
+       / (STEPS_PER_REV * MICROSTEPS * GEAR_RATIO);
 }
 
 // ================================
@@ -363,13 +449,21 @@ static void updateOled(bool forward, float smoothedTrim, float ustepsPerSecond, 
     else if (g_home_phase == HOME_PHASE_BACKOFF)       ph = "BACK";
     else if (g_home_phase == HOME_PHASE_SLOW_APPROACH) ph = "SLOW";
     snprintf(l1, sizeof(l1), " Mode:HOME-%-4s", ph);
+  } else if (g_mode == MODE_TRACKING && g_lunar_tracking) {
+    snprintf(l1, sizeof(l1), " Mode:LUNAR     ");
   } else if (g_mode == MODE_TRACKING) {
     snprintf(l1, sizeof(l1), " Mode:TRACK     ");
   } else {
     snprintf(l1, sizeof(l1), " Mode:IDLE      ");
   }
 
-  snprintf(l2, sizeof(l2), " Dir:%c          ", forward ? 'N' : 'S');
+  if (g_mode == MODE_HOMING) {
+    snprintf(l2, sizeof(l2), " Dir:%c          ", forward ? 'N' : 'S');
+  } else if (g_lunar_tracking) {
+    snprintf(l2, sizeof(l2), " Dir:%c-LUNAR    ", forward ? 'N' : 'S');
+  } else {
+    snprintf(l2, sizeof(l2), " Dir:%c-SIDEREAL ", forward ? 'N' : 'S');
+  }
 
   int pct = (int)(smoothedTrim * 100.0f + 0.5f);
   if (!g_pot_ok) {
@@ -380,7 +474,7 @@ static void updateOled(bool forward, float smoothedTrim, float ustepsPerSecond, 
 
   snprintf(l4, sizeof(l4), " Stops H:%d E:%d ", es.home ? 1 : 0, es.end ? 1 : 0);
 
-  float revPerHour = (ustepsPerSecond * 3600.0f) / (STEPS_PER_REV * MICROSTEPS);
+  float revPerHour = shaftRevPerHourFromMotorUsps(ustepsPerSecond);
   dtostrf(revPerHour, 6, 2, g_buf);
   snprintf(l5, sizeof(l5), " rev/h:%s", g_buf);
 
@@ -474,7 +568,7 @@ void setup() {
   driver.I_scale_analog(false);
   driver.toff(4);
   driver.blank_time(24);
-  driver.rms_current(600);
+  driver.rms_current(MOTOR_CURRENT_TRACKING_MA);
 
   // Ensure microsteps are taken from UART registers (not pins)
   driver.mstep_reg_select(true);
@@ -486,7 +580,10 @@ void setup() {
   driver.TPOWERDOWN(10);
 
   // Rates
-  BASE_USPS = (STEPS_PER_REV * MICROSTEPS / SIDEREAL_SEC) * (R_MM / ROLLER_R_MM) * SPEED_MULT;
+  BASE_USPS = (STEPS_PER_REV * MICROSTEPS / SIDEREAL_SEC)
+            * (R_MM / ROLLER_R_MM)
+            * GEAR_RATIO
+            * SPEED_MULT;
   HOMING_FAST_USPS    = BASE_USPS * HOME_FAST_MULT;
   HOMING_BACKOFF_USPS = BASE_USPS * HOME_BACKOFF_MULT;
   HOMING_SLOW_USPS    = BASE_USPS * HOME_SLOW_MULT;
@@ -508,11 +605,16 @@ void setup() {
   if (st0.selected) {
     g_track_forward = st0.forward;
     g_track_dir_valid = true;
+    g_lunar_tracking = false;
+  } else if (st0.center) {
+    // With no previous direction after boot, center defaults to lunar North.
+    g_lunar_tracking = true;
   }
-  digitalWrite(PIN_DIR, g_track_forward ? HIGH : LOW);
+  digitalWrite(PIN_DIR, motorDirectionLevel(g_track_forward));
 
   // Start timer for tracking
-  applySpeedToTimer(BASE_USPS * readTrimFactor());
+  float initialTrackingUsps = BASE_USPS * (g_lunar_tracking ? LUNAR_RATE_FACTOR : 1.0f);
+  applySpeedToTimer(initialTrackingUsps * readTrimFactor());
   initTimer1();
 
   // I2C + OLED (U8X8 text mode)
@@ -540,6 +642,10 @@ void loop() {
   if (st.selected) {
     g_track_forward = st.forward;
     g_track_dir_valid = true;
+    g_lunar_tracking = false;
+  } else if (st.center) {
+    // Center keeps the last North/South direction and selects lunar speed.
+    g_lunar_tracking = true;
   }
 
   // END stop during tracking => stop tracking
@@ -563,7 +669,7 @@ void loop() {
   if (g_mode == MODE_HOMING) {
     forward = (g_home_phase == HOME_PHASE_BACKOFF) ? !g_home_dir_forward : g_home_dir_forward;
   }
-  digitalWrite(PIN_DIR, forward ? HIGH : LOW);
+  digitalWrite(PIN_DIR, motorDirectionLevel(forward));
 
   // Determine if motion is toward HOME (for endstop logic)
   bool towardHome = false;
@@ -640,6 +746,7 @@ void loop() {
 
   // Driver enable (active LOW)
   digitalWrite(PIN_EN, (g_mode == MODE_IDLE || blocked) ? HIGH : LOW);
+  applyDriverProfile();
 
   // Speed selection
   float trim = readTrimFactor();
@@ -653,7 +760,8 @@ void loop() {
     else if (g_home_phase == HOME_PHASE_SLOW_APPROACH)targetUsps = HOMING_SLOW_USPS;
     else                                              targetUsps = HOMING_FAST_USPS;
   } else {
-    targetUsps = BASE_USPS * smoothedTrim;
+    float trackingRate = BASE_USPS * (g_lunar_tracking ? LUNAR_RATE_FACTOR : 1.0f);
+    targetUsps = trackingRate * smoothedTrim;
   }
 
   // OLED update

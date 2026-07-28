@@ -301,7 +301,7 @@
       <li>Kugelgelenk M10 für das Südlager</li>
       <li>Verstellbare Möbelfüße</li>
       <li>NEMA17-Schrittmotor mit Winkelhalter</li>
-      <li>GT2-Riemen und passende Pulleys</li>
+      <li>GT2-Riemen, 16-Zähne-Motorpulley und 66-Zähne-Wellenpulley</li>
       <li>Steuerplatine mit Arduino Nano und TMC2209</li>
       <li>OLED-Display, Taster, Schalter und Potentiometer</li>
       <li>Endstops, Kabel und JST-XH-Steckverbinder</li>
