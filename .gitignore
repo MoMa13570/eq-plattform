@@ -5,6 +5,7 @@ node_modules/
 dist/
 .jekyll-cache/
 _site/
+tmp/
 
 # Lokaler Entwicklungsprototyp; veröffentlicht wird flasher/
 web-flasher/
