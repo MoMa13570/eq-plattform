@@ -226,9 +226,7 @@
 <section class="eq-section">
   <h2>Worum es geht</h2>
   <p>
-    Die EQ Plattform besteht aus einer festen Grundplatte und einer beweglich gelagerten Tischplatte,
-    auf der das Teleskop steht. Sie ist bewusst robust konstruiert, damit sie auch schwere Dobson-Teleskope
-    tragen kann. Der Antrieb erfolgt über eine eigene Elektronik mit NEMA17-Schrittmotor und TMC2209-Treiber.
+   Das Projekt verfolgt die Idee einer Do-it-yourself-EQ-Plattform, die sich vergleichsweise preisgünstig herstellen lässt, ohne dass man zwangsläufig handwerkliche Fähigkeiten benötigt. Es ähnelt eher einem Ikea-Bausatz – daher nennen wir es spaßeshalber Stjärnföljare: Die Teile werden online bestellt, und der Benutzer baut die Plattform nach Anleitung zusammen. Die Kosten fallen dabei deutlich niedriger aus als bei kommerziell erhältlichen Plattformen. Im Folgenden werden die nötigen Teilelisten und Bauschritte im Einzelnen erklärt.
   </p>
 
   <div class="eq-grid">
