@@ -1,0 +1,10 @@
+.DS_Store
+**/.DS_Store
+.pnpm-store/
+node_modules/
+dist/
+.jekyll-cache/
+_site/
+
+# Lokaler Entwicklungsprototyp; veröffentlicht wird flasher/
+web-flasher/

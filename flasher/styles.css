@@ -310,6 +310,17 @@ button {
   clip: rect(0 0 0 0);
 }
 
+.firmware-download {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.firmware-download a {
+  color: var(--aqua);
+  font-weight: 700;
+}
+
 .connect-row {
   display: flex;
   gap: 10px;
