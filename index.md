@@ -205,16 +205,17 @@
 
 <section class="eq-hero">
   <div>
-    <p class="eq-kicker">Open-Source-Hardware für Dobson-Teleskope</p>
+    <p class="eq-kicker">DIY-Hardware für Dobson-Teleskope</p>
     <h1>EQ Plattform</h1>
     <p class="eq-lead">
       Eine stabile, modulare Nachführplattform für Dobson-Teleskope. Sie kompensiert die scheinbare
       Bewegung des Sternenhimmels und hält Objekte dadurch länger im Gesichtsfeld.
     </p>
     <div class="eq-actions">
+      <a class="eq-button" href="flasher/">Firmware im Browser installieren</a>
       <a class="eq-button" href="build_instructions/buildinginstructions_EQ-Plattform.pdf">Bauanleitung PDF</a>
       <a class="eq-button" href="#ressourcen">Dateien ansehen</a>
-      <a class="eq-button secondary" href="BOM/Teileliste_DM%20EQ%20Plattform.csv">Stückliste ansehen</a>
+      <a class="eq-button secondary" href="part%20list/Teileliste_DM%20EQ%20Plattform.csv">Stückliste ansehen</a>
       <a class="eq-button secondary" href="https://github.com/MoMa13570/eq-plattform">GitHub-Repository</a>
     </div>
   </div>
@@ -306,8 +307,10 @@
     <div class="eq-card">
       <h3>Software und BOM</h3>
       <ul>
-        <li><a href="https://github.com/MoMa13570/eq-plattform/tree/main/software">Firmware für Arduino und PlatformIO</a></li>
-        <li><a href="BOM/Teileliste_DM%20EQ%20Plattform.csv">Stückliste als CSV</a></li>
+        <li><a href="flasher/">Firmware direkt im Browser installieren</a></li>
+        <li><a href="https://github.com/MoMa13570/eq-plattform/releases/latest">Aktuelle HEX-Firmware herunterladen</a></li>
+        <li><a href="https://github.com/MoMa13570/eq-plattform/tree/main/software">Firmware-Quellcode und PlatformIO-Projekt</a></li>
+        <li><a href="part%20list/Teileliste_DM%20EQ%20Plattform.csv">Stückliste als CSV</a></li>
         <li><a href="build_instructions/buildinginstructions_EQ-Plattform.pdf">Bauanleitung als PDF</a></li>
         <li><a href="README.md">Repository-Übersicht</a></li>
       </ul>
@@ -404,14 +407,28 @@
 
 <section class="eq-section">
   <h2>Software installieren</h2>
-  <div class="eq-card">
-    <ol>
-      <li>Visual Studio Code installieren.</li>
-      <li>In Visual Studio Code die Erweiterung <strong>PlatformIO</strong> installieren.</li>
-      <li>Das Repository von GitHub als ZIP herunterladen und entpacken.</li>
-      <li>In PlatformIO über <strong>Pick a Folder</strong> den passenden Ordner unter <code>software/</code> auswählen.</li>
-      <li>Arduino anschließen und die Firmware über PlatformIO hochladen.</li>
-    </ol>
+  <p>
+    Für die normale Installation werden weder Arduino IDE noch Visual Studio Code benötigt.
+    Die fertige HEX-Datei lässt sich direkt mit Chrome oder Edge übertragen.
+  </p>
+  <div class="eq-grid">
+    <div class="eq-card">
+      <h3>Direkt im Browser</h3>
+      <ol>
+        <li>Aktuelle HEX-Datei aus dem GitHub Release herunterladen.</li>
+        <li>Board auswählen und Arduino per USB verbinden.</li>
+        <li>Firmware mit dem Browser-Flasher installieren.</li>
+      </ol>
+      <p><a href="flasher/">Browser-Flasher öffnen</a></p>
+    </div>
+    <div class="eq-card">
+      <h3>Für Entwickler</h3>
+      <p>
+        Der vollständige Quellcode und die PlatformIO-Konfiguration für Uno und Nano
+        liegen unter <code>software/EQ-Plattform_TMC2209/</code>.
+      </p>
+      <p><a href="https://github.com/MoMa13570/eq-plattform/tree/main/software/EQ-Plattform_TMC2209">PlatformIO-Projekt öffnen</a></p>
+    </div>
   </div>
 </section>
 
