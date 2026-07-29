@@ -1000,11 +1000,11 @@ lang: de
             </span>
             <span class="eq-resource-arrow">→</span>
           </a>
-          <a class="eq-resource" href="part%20list/Teileliste_DM%20EQ%20Plattform.csv">
-            <span class="eq-resource-type">CSV</span>
+          <a class="eq-resource" href="teileliste/">
+            <span class="eq-resource-type">Web · CSV</span>
             <span>
               <strong>Stückliste</strong>
-              <small>Mechanik, Schrauben, Elektronik und Bezugsquellen.</small>
+              <small>Übersichtlich sortiert mit Mengen und kurzen Händlerlinks.</small>
             </span>
             <span class="eq-resource-arrow">→</span>
           </a>
