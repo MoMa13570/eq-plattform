@@ -242,6 +242,35 @@ lang: de
     backdrop-filter: blur(8px);
   }
 
+  .eq-intro {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.3fr) minmax(0, 0.7fr);
+    gap: clamp(1.5rem, 5vw, 4rem);
+    align-items: start;
+    margin-bottom: clamp(4rem, 8vw, 7rem);
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    border: 1px solid var(--eq-line);
+    border-radius: var(--eq-radius);
+    background: var(--eq-surface);
+    box-shadow: 0 18px 45px rgba(11, 45, 50, 0.07);
+  }
+
+  .eq-intro h2 {
+    margin-bottom: 0;
+    color: var(--eq-night);
+    font-size: clamp(1.8rem, 4vw, 2.7rem);
+    font-weight: 720;
+    letter-spacing: -0.05em;
+    line-height: 1;
+  }
+
+  .eq-intro p {
+    margin-bottom: 0;
+    color: var(--eq-muted);
+    font-size: 1.04rem;
+    line-height: 1.75;
+  }
+
   .eq-section {
     padding: clamp(4rem, 8vw, 7rem) 0;
   }
@@ -607,6 +636,7 @@ lang: de
     .eq-hero,
     .eq-split,
     .eq-split.reverse,
+    .eq-intro,
     .eq-section-heading,
     .eq-dark-grid {
       grid-template-columns: 1fr;
@@ -740,6 +770,20 @@ lang: de
           <figcaption>Fertige EQ Plattform mit motorisierter Nachführung</figcaption>
         </figure>
       </header>
+
+      <section class="eq-intro" aria-labelledby="worum-es-geht">
+        <h2 id="worum-es-geht">Worum es geht</h2>
+        <p>
+          Das Projekt verfolgt die Idee einer Do-it-yourself-EQ-Plattform, die sich
+          vergleichsweise preisgünstig herstellen lässt, ohne dass man zwangsläufig
+          handwerkliche Fähigkeiten benötigt. Es ähnelt eher einem Ikea-Bausatz –
+          daher nennen wir es spaßeshalber Stjärnföljare: Die Teile werden online
+          bestellt, und der Benutzer baut die Plattform nach Anleitung zusammen.
+          Die Kosten fallen dabei deutlich niedriger aus als bei kommerziell
+          erhältlichen Plattformen. Im Folgenden werden die nötigen Teilelisten und
+          Bauschritte im Einzelnen erklärt.
+        </p>
+      </section>
 
       <section class="eq-section soft" id="prinzip">
         <div class="eq-split">
