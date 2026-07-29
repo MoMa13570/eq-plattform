@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Vollständige Teileliste für die DIY-EQ-Plattform Stjärnföljare."
+    />
+    <title>Teileliste · EQ-Plattform</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f2f6f5;
+        --surface: #fff;
+        --surface-soft: #e9f0ef;
+        --ink: #13272b;
+        --muted: #5d7074;
+        --line: #d4e0de;
+        --accent: #087e84;
+        --accent-dark: #075a60;
+        --night: #0b2d32;
+        --radius: 1.25rem;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.55;
+      }
+
+      a {
+        color: var(--accent-dark);
+      }
+
+      .wrap {
+        width: min(1120px, calc(100% - 40px));
+        margin: 0 auto;
+      }
+
+      header {
+        border-bottom: 1px solid var(--line);
+      }
+
+      nav {
+        display: flex;
+        min-height: 76px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: var(--ink);
+        font-weight: 800;
+        letter-spacing: -0.025em;
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 2.25rem;
+        height: 2.25rem;
+        place-items: center;
+        border-radius: 0.7rem;
+        background: var(--night);
+        color: #fff;
+        font-size: 0.78rem;
+      }
+
+      .back {
+        color: var(--muted);
+        font-size: 0.9rem;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 2rem;
+        align-items: end;
+        padding: clamp(3.5rem, 8vw, 6rem) 0 2.5rem;
+      }
+
+      .kicker {
+        margin: 0 0 0.8rem;
+        color: var(--accent-dark);
+        font: 750 0.78rem ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0 0 1rem;
+        color: var(--night);
+        font-size: clamp(2.8rem, 7vw, 5rem);
+        font-weight: 720;
+        letter-spacing: -0.065em;
+        line-height: 0.95;
+      }
+
+      .lead {
+        max-width: 45rem;
+        margin: 0;
+        color: var(--muted);
+        font-size: 1.08rem;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 3rem;
+        align-items: center;
+        justify-content: center;
+        padding: 0.7rem 1.1rem;
+        border: 1px solid var(--accent);
+        border-radius: 0.75rem;
+        background: var(--accent);
+        color: #fff;
+        font-size: 0.92rem;
+        font-weight: 750;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .parts-section {
+        margin-bottom: 1.25rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-shadow: 0 12px 32px rgba(11, 45, 50, 0.05);
+        overflow: hidden;
+      }
+
+      .section-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.35rem 1.5rem 1.1rem;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface-soft);
+      }
+
+      h2 {
+        margin: 0;
+        color: var(--night);
+        font-size: 1.35rem;
+        letter-spacing: -0.025em;
+      }
+
+      .section-head span {
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 0.88rem 1rem;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: middle;
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      tbody tr:last-child td {
+        border-bottom: 0;
+      }
+
+      tbody tr:hover {
+        background: #f8fbfa;
+      }
+
+      .qty {
+        width: 6rem;
+        color: var(--accent-dark);
+        font-weight: 800;
+      }
+
+      .item {
+        font-weight: 700;
+      }
+
+      .details {
+        color: var(--muted);
+        font: 0.82rem ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      .shops {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+
+      .shop {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.32rem 0.58rem;
+        border: 1px solid var(--line);
+        border-radius: 0.55rem;
+        background: var(--surface);
+        color: var(--accent-dark);
+        font-size: 0.78rem;
+        font-weight: 750;
+        text-decoration: none;
+      }
+
+      .shop:hover {
+        border-color: var(--accent);
+        background: var(--surface-soft);
+      }
+
+      .empty {
+        color: #8a999b;
+      }
+
+      .note {
+        margin: 2rem 0 4.5rem;
+        padding: 1.2rem 1.35rem;
+        border-left: 4px solid var(--accent);
+        border-radius: 0 0.8rem 0.8rem 0;
+        background: var(--surface-soft);
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .error {
+        margin-bottom: 4rem;
+        padding: 1rem;
+        border: 1px solid #d79b8b;
+        border-radius: 0.8rem;
+        background: #fff5f2;
+      }
+
+      footer {
+        padding: 2rem 0;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      footer .wrap {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      @media (max-width: 760px) {
+        .hero {
+          grid-template-columns: 1fr;
+          align-items: start;
+        }
+
+        .button {
+          justify-self: start;
+        }
+
+        thead {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip: rect(0 0 0 0);
+          white-space: nowrap;
+        }
+
+        tbody,
+        tr,
+        td {
+          display: block;
+        }
+
+        tr {
+          display: grid;
+          grid-template-columns: 4.5rem minmax(0, 1fr);
+          padding: 1rem;
+          border-bottom: 1px solid var(--line);
+        }
+
+        tbody tr:last-child {
+          border-bottom: 0;
+        }
+
+        td {
+          padding: 0;
+          border: 0;
+        }
+
+        .qty {
+          grid-row: 1 / span 3;
+          width: auto;
+        }
+
+        .item {
+          margin-bottom: 0.2rem;
+        }
+
+        .details:not(:empty) {
+          margin-bottom: 0.55rem;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .wrap {
+          width: min(100% - 24px, 1120px);
+        }
+
+        nav {
+          min-height: 66px;
+        }
+
+        .brand span:last-child {
+          display: none;
+        }
+
+        .section-head {
+          padding: 1.1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <nav class="wrap" aria-label="Seitennavigation">
+        <a class="brand" href="../">
+          <span class="brand-mark">EQ</span>
+          <span>Stjärnföljare</span>
+        </a>
+        <a class="back" href="../">← Zur Projektseite</a>
+      </nav>
+    </header>
+
+    <main class="wrap">
+      <div class="hero">
+        <div>
+          <p class="kicker">Stückliste</p>
+          <h1>Alle Teile.<br />Klar sortiert.</h1>
+          <p class="lead">
+            Die vollständige ursprüngliche Teileliste – übersichtlicher dargestellt.
+            Lange Adressen erscheinen als kurze Händlernamen, führen aber weiterhin
+            zu den unveränderten Bezugsquellen.
+          </p>
+        </div>
+        <a
+          class="button"
+          href="../part%20list/Teileliste_DM%20EQ%20Plattform.csv"
+          download
+        >Original-CSV herunterladen</a>
+      </div>
+
+      <div id="parts" aria-live="polite"></div>
+
+      <p class="note">
+        Alle Einträge und Linkziele stammen direkt aus der ursprünglichen CSV-Datei.
+        Angebote, Preise und Verfügbarkeit der verlinkten Händler können sich ändern.
+      </p>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <span>Stjärnföljare · DIY-EQ-Plattform</span>
+        <a href="https://github.com/MoMa13570/eq-plattform">GitHub Repository</a>
+      </div>
+    </footer>
+
+    <script>
+      const csvPath = "../part%20list/Teileliste_DM%20EQ%20Plattform.csv";
+      const partsRoot = document.querySelector("#parts");
+
+      function parseCsv(text) {
+        const rows = [];
+        let row = [];
+        let field = "";
+        let quoted = false;
+
+        for (let i = 0; i < text.length; i += 1) {
+          const character = text[i];
+          const next = text[i + 1];
+
+          if (character === '"') {
+            if (quoted && next === '"') {
+              field += '"';
+              i += 1;
+            } else {
+              quoted = !quoted;
+            }
+          } else if (character === ";" && !quoted) {
+            row.push(field);
+            field = "";
+          } else if ((character === "\n" || character === "\r") && !quoted) {
+            if (character === "\r" && next === "\n") i += 1;
+            row.push(field);
+            if (row.some((value) => value.trim())) rows.push(row);
+            row = [];
+            field = "";
+          } else {
+            field += character;
+          }
+        }
+
+        if (field || row.length) {
+          row.push(field);
+          if (row.some((value) => value.trim())) rows.push(row);
+        }
+
+        return rows;
+      }
+
+      function shopName(link) {
+        try {
+          const host = new URL(link).hostname.replace(/^www\./, "");
+          const names = [
+            ["amazon.", "Amazon"],
+            ["kugellager-express.", "Kugellager-Express"],
+            ["omc-stepperonline.", "StepperOnline"],
+            ["fk-soehnchen.", "FK Söhnchen"],
+            ["cncshop.", "CNCShop"],
+            ["roboter-bausatz.", "Roboter-Bausatz"],
+            ["ebay.", "eBay"],
+          ];
+          return names.find(([domain]) => host.includes(domain))?.[1] || host;
+        } catch {
+          return "Bezugsquelle";
+        }
+      }
+
+      function createShopLinks(links) {
+        const container = document.createElement("div");
+        container.className = "shops";
+
+        links.filter(Boolean).forEach((link) => {
+          const anchor = document.createElement("a");
+          anchor.className = "shop";
+          anchor.href = link;
+          anchor.target = "_blank";
+          anchor.rel = "noopener";
+          anchor.textContent = `${shopName(link)} ↗`;
+          container.append(anchor);
+        });
+
+        if (!container.children.length) {
+          container.className = "empty";
+          container.textContent = "–";
+        }
+
+        return container;
+      }
+
+      function renderSection(title, rows, subtitle = `${rows.length} Positionen`) {
+        const section = document.createElement("section");
+        section.className = "parts-section";
+
+        const heading = document.createElement("div");
+        heading.className = "section-head";
+        const h2 = document.createElement("h2");
+        h2.textContent = title;
+        const count = document.createElement("span");
+        count.textContent = subtitle;
+        heading.append(h2, count);
+
+        const table = document.createElement("table");
+        table.innerHTML = `
+          <thead>
+            <tr>
+              <th>Menge</th>
+              <th>Bauteil</th>
+              <th>Artikel / Hersteller</th>
+              <th>Bezugsquelle</th>
+            </tr>
+          </thead>
+        `;
+        const body = document.createElement("tbody");
+
+        rows.forEach((values) => {
+          const tr = document.createElement("tr");
+          const quantity = document.createElement("td");
+          quantity.className = "qty";
+          quantity.textContent = values[0] || "–";
+
+          const item = document.createElement("td");
+          item.className = "item";
+          item.textContent = values[1];
+
+          const details = document.createElement("td");
+          details.className = "details";
+          details.textContent = [values[2], values[3]].filter(Boolean).join(" · ");
+
+          const shops = document.createElement("td");
+          shops.append(createShopLinks([values[5], values[6]]));
+          tr.append(quantity, item, details, shops);
+          body.append(tr);
+        });
+
+        table.append(body);
+        section.append(heading, table);
+        partsRoot.append(section);
+      }
+
+      fetch(csvPath)
+        .then((response) => {
+          if (!response.ok) throw new Error("Die Teileliste konnte nicht geladen werden.");
+          return response.text();
+        })
+        .then((text) => {
+          const rows = parseCsv(text).slice(1);
+          const sections = [];
+          let current = { title: "Mechanik", rows: [], subtitle: "" };
+
+          rows.forEach((values) => {
+            const first = (values[0] || "").trim();
+            const item = (values[1] || "").trim();
+
+            if (first && !item) {
+              if (current.rows.length) sections.push(current);
+              if (first.toLowerCase().includes("platine")) {
+                current = { title: "Elektronik / Platine", rows: [], subtitle: "" };
+              } else if (first.toLowerCase().includes("motor")) {
+                current = { title: "Motor und Antrieb", rows: [], subtitle: "" };
+              } else {
+                current = {
+                  title: "Alternative Pulleys",
+                  rows: [],
+                  subtitle: "Firmwarekonstanten entsprechend anpassen",
+                };
+              }
+            } else if (item) {
+              current.rows.push(values);
+            }
+          });
+
+          if (current.rows.length) sections.push(current);
+          sections.forEach(({ title, rows: sectionRows, subtitle }) => {
+            renderSection(title, sectionRows, subtitle || `${sectionRows.length} Positionen`);
+          });
+        })
+        .catch((error) => {
+          partsRoot.className = "error";
+          partsRoot.textContent = error.message;
+        });
+    </script>
+  </body>
+</html>
