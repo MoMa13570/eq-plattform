@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Firmware für die EQ-Plattform direkt mit Chrome auf Arduino Uno und Nano installieren."
+    />
+    <meta property="og:title" content="EQ Firmware Flasher" />
+    <meta
+      property="og:description"
+      content="Firmware direkt im Browser auf Arduino Uno und Nano installieren."
+    />
+    <meta
+      property="og:image"
+      content="https://moma13570.github.io/eq-plattform/flasher/og.png"
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <title>EQ Firmware Flasher</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <a class="brand" href="../" aria-label="Zur EQ-Plattform">
+          <span class="brand-mark">EQ</span>
+          <span>
+            <strong>EQ Firmware</strong>
+            <small>Browser Flasher</small>
+          </span>
+        </a>
+        <div class="browser-pill">
+          <span class="browser-dot" id="browser-dot"></span>
+          <span id="browser-status">Browser wird geprüft …</span>
+        </div>
+      </header>
+
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Direkt · Sicher · Ohne Installation</p>
+          <h1>
+            Firmware aufspielen.
+            <span>Einfach im Browser.</span>
+          </h1>
+        </div>
+        <p>
+          Verbinde deine EQ-Plattform per USB und übertrage die kompilierte
+          Firmware direkt aus Chrome auf Arduino Uno oder Nano.
+        </p>
+      </section>
+
+      <section class="workspace" aria-label="Firmware installieren">
+        <div class="setup-panel">
+          <div class="panel-heading">
+            <h2>Installation vorbereiten</h2>
+            <span>3 SCHRITTE</span>
+          </div>
+
+          <div class="unsupported-banner" id="unsupported-banner" hidden>
+            Öffne diese Seite mit einer aktuellen Desktop-Version von Chrome.
+            Safari unterstützt die benötigte USB-Verbindung nicht.
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <span class="step-number">01</span>
+              Board auswählen
+            </div>
+            <div class="board-grid" id="board-grid">
+              <button class="board-card selected" data-board="uno" type="button">
+                <strong>Arduino Uno</strong>
+                <span>Uno R3 · 115200 Baud</span>
+              </button>
+              <button class="board-card" data-board="nano" type="button">
+                <strong>Arduino Nano</strong>
+                <span>Neuer Bootloader · 115200 Baud</span>
+              </button>
+              <button class="board-card" data-board="nano-old" type="button">
+                <strong>Nano Legacy</strong>
+                <span>Alter Bootloader · 57600 Baud</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <span class="step-number">02</span>
+              Firmware auswählen
+            </div>
+            <label class="dropzone" id="dropzone">
+              <span class="file-icon">HEX</span>
+              <span>
+                <strong id="file-name">.hex-Datei hier ablegen</strong>
+                <span id="file-detail">oder klicken, um eine Datei auszuwählen</span>
+              </span>
+              <input
+                id="firmware-input"
+                class="hidden-input"
+                type="file"
+                accept=".hex,text/plain"
+              />
+            </label>
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <span class="step-number">03</span>
+              Arduino verbinden
+            </div>
+            <div class="connect-row">
+              <button class="button" id="connect-button" type="button">
+                USB-Gerät wählen
+              </button>
+              <div class="connect-state" id="connect-state">
+                Noch nicht verbunden
+              </div>
+            </div>
+          </div>
+
+          <div class="flash-row">
+            <button class="button primary" id="flash-button" type="button" disabled>
+              Firmware installieren
+            </button>
+            <span class="privacy-note">
+              Die Datei bleibt<br />
+              auf diesem Gerät.
+            </span>
+          </div>
+        </div>
+
+        <aside class="status-panel" aria-live="polite">
+          <div class="status-top">
+            <div class="status-symbol" id="status-symbol">·</div>
+            <div>
+              <strong id="status-title">Warte auf Auswahl</strong>
+              <span id="status-detail">Drei kurze Schritte</span>
+            </div>
+          </div>
+
+          <div
+            class="progress-track"
+            id="progress-track"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+          >
+            <div class="progress-bar" id="progress-bar"></div>
+          </div>
+          <div class="progress-meta">
+            <span>UPLOAD</span>
+            <span id="progress-text">0 %</span>
+          </div>
+
+          <div class="log" id="log" aria-label="Installationsprotokoll"></div>
+
+          <div class="status-footer">
+            <span class="warning-mark">△</span>
+            <span>
+              Während der Installation weder USB-Kabel abziehen noch die Seite
+              schließen. Anschlüsse RX/TX am Arduino sollten frei bleiben.
+            </span>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
