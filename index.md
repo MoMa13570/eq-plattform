@@ -776,7 +776,7 @@ lang: de
         <p>
           Das Projekt verfolgt die Idee einer Do-it-yourself-EQ-Plattform, die sich
           vergleichsweise preisgünstig herstellen lässt, ohne dass man zwangsläufig
-          handwerkliche Fähigkeiten benötigt. Es ähnelt eher einem Ikea-Bausatz –
+          handwerkliche Fähigkeiten benötigt. Es ähnelt eher einem Bausatz eines gewissen Möbelhauses –
           daher nennen wir es spaßeshalber Stjärnföljare: Die Teile werden online
           bestellt, und der Benutzer baut die Plattform nach Anleitung zusammen.
           Die Kosten fallen dabei deutlich niedriger aus als bei kommerziell
