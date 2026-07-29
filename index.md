@@ -756,7 +756,7 @@ lang: de
           </p>
           <div class="eq-actions">
             <a class="eq-button" href="flasher/">Firmware installieren</a>
-            <a class="eq-button secondary" href="build_instructions/buildinginstructions_EQ-Plattform.pdf">Bauanleitung öffnen</a>
+            <a class="eq-button secondary" href="build_instructions/buildinstruction_EQ_Plattform.pdf">Bauanleitung öffnen</a>
             <a class="eq-button secondary" href="#downloads">Dateien herunterladen</a>
           </div>
           <div class="eq-facts" aria-label="Projektmerkmale">
@@ -992,8 +992,8 @@ lang: de
           </p>
         </div>
         <div class="eq-resource-grid">
-          <a class="eq-resource" href="build_instructions/buildinginstructions_EQ-Plattform.pdf">
-            <span class="eq-resource-type">PDF · 18 Seiten</span>
+          <a class="eq-resource" href="build_instructions/buildinstruction_EQ_Plattform.pdf">
+            <span class="eq-resource-type">PDF · 32 Seiten</span>
             <span>
               <strong>Bauanleitung</strong>
               <small>Prinzip, Bauteile, Montage, Elektronik und Inbetriebnahme.</small>
@@ -1051,7 +1051,7 @@ lang: de
             eine HEX-Datei, Chrome oder Edge und ein USB-Kabel.
           </p>
         </div>
-        <a class="eq-button" href="build_instructions/buildinginstructions_EQ-Plattform.pdf">Bauanleitung starten</a>
+        <a class="eq-button" href="build_instructions/buildinstruction_EQ_Plattform.pdf">Bauanleitung starten</a>
       </section>
     </main>
 

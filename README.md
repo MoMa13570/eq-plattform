@@ -8,7 +8,7 @@ NEMA17-Schrittmotor und TMC2209-Treiber.
 - [Projekt-Website und Bauübersicht](https://moma13570.github.io/eq-plattform/)
 - [Firmware im Browser installieren](https://moma13570.github.io/eq-plattform/flasher/)
 - [Aktuelle Firmware herunterladen](https://github.com/MoMa13570/eq-plattform/releases/latest)
-- [Bauanleitung als PDF](build_instructions/buildinginstructions_EQ-Plattform.pdf)
+- [Bauanleitung als PDF](build_instructions/buildinstruction_EQ_Plattform.pdf)
 - [Stückliste als CSV](part%20list/Teileliste_DM%20EQ%20Plattform.csv)
 
 Der Browser-Flasher benötigt Chrome oder Edge auf einem Desktop-Rechner. Die
