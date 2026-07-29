@@ -785,6 +785,62 @@ lang: de
         </p>
       </section>
 
+      <section class="eq-section soft" id="aufbau">
+        <div class="eq-section-heading">
+          <h2>Mechanik in sechs Schritten</h2>
+          <p>
+            Die Website zeigt den Ablauf. Maße, Bohrbilder und Detailfotos stehen
+            in der PDF-Bauanleitung.
+          </p>
+        </div>
+        <div class="eq-step-grid">
+          <article class="eq-step">
+            <span class="eq-step-number">01</span>
+            <h3>Möbelfüße montieren</h3>
+            <p>Füße in den vorgesehenen Ausfräsungen der Grundplatte verschrauben.</p>
+          </article>
+          <article class="eq-step">
+            <span class="eq-step-number">02</span>
+            <h3>Stehlager vormontieren</h3>
+            <p>Vier UCP204-Lager zunächst nur handfest auf der Grundplatte befestigen.</p>
+          </article>
+          <article class="eq-step">
+            <span class="eq-step-number">03</span>
+            <h3>Linearwellen einsetzen</h3>
+            <p>Wellen ausrichten, in die Lager schieben und mit Madenschrauben fixieren.</p>
+          </article>
+          <article class="eq-step">
+            <span class="eq-step-number">04</span>
+            <h3>Tischplatte vorbereiten</h3>
+            <p>M10-Gewindeeinsatz setzen und das Kugelgelenk einschrauben.</p>
+          </article>
+          <article class="eq-step">
+            <span class="eq-step-number">05</span>
+            <h3>Kreissegmente montieren</h3>
+            <p>M5-Gewindeeinsätze setzen und beide Segmente an der Tischplatte verschrauben.</p>
+          </article>
+          <article class="eq-step">
+            <span class="eq-step-number">06</span>
+            <h3>Südlager befestigen</h3>
+            <p>Holzblock mit M8-Gewindeeinsätzen montieren und die Leichtgängigkeit prüfen.</p>
+          </article>
+        </div>
+        <div class="eq-gallery">
+          <figure class="eq-photo-card">
+            <img src="images/build/parts-overview.webp" alt="Holzplatten, Lager, Wellen und weitere mechanische Bauteile" />
+            <figcaption>Mechanische Bauteile vor dem Zusammenbau</figcaption>
+          </figure>
+          <figure class="eq-photo-card">
+            <img src="images/build/linear-shafts.webp" alt="In vier Stehlagern montierte Linearwellen" />
+            <figcaption>Nordlager mit UCP204-Stehlagern und Linearwellen</figcaption>
+          </figure>
+          <figure class="eq-photo-card">
+            <img src="images/build/south-bearing.webp" alt="Montiertes Südlager aus Holzblock und Kugelgelenk" />
+            <figcaption>Holzblock und Kugelgelenk bilden das Südlager</figcaption>
+          </figure>
+        </div>
+      </section>
+
       <section class="eq-section soft" id="prinzip">
         <div class="eq-split">
           <div class="eq-split-copy">
@@ -850,62 +906,6 @@ lang: de
               <li>10-kΩ-Potentiometer</li>
             </ul>
           </article>
-        </div>
-      </section>
-
-      <section class="eq-section soft" id="aufbau">
-        <div class="eq-section-heading">
-          <h2>Mechanik in sechs Schritten</h2>
-          <p>
-            Die Website zeigt den Ablauf. Maße, Bohrbilder und Detailfotos stehen
-            in der PDF-Bauanleitung.
-          </p>
-        </div>
-        <div class="eq-step-grid">
-          <article class="eq-step">
-            <span class="eq-step-number">01</span>
-            <h3>Möbelfüße montieren</h3>
-            <p>Füße in den vorgesehenen Ausfräsungen der Grundplatte verschrauben.</p>
-          </article>
-          <article class="eq-step">
-            <span class="eq-step-number">02</span>
-            <h3>Stehlager vormontieren</h3>
-            <p>Vier UCP204-Lager zunächst nur handfest auf der Grundplatte befestigen.</p>
-          </article>
-          <article class="eq-step">
-            <span class="eq-step-number">03</span>
-            <h3>Linearwellen einsetzen</h3>
-            <p>Wellen ausrichten, in die Lager schieben und mit Madenschrauben fixieren.</p>
-          </article>
-          <article class="eq-step">
-            <span class="eq-step-number">04</span>
-            <h3>Tischplatte vorbereiten</h3>
-            <p>M10-Gewindeeinsatz setzen und das Kugelgelenk einschrauben.</p>
-          </article>
-          <article class="eq-step">
-            <span class="eq-step-number">05</span>
-            <h3>Kreissegmente montieren</h3>
-            <p>M5-Gewindeeinsätze setzen und beide Segmente an der Tischplatte verschrauben.</p>
-          </article>
-          <article class="eq-step">
-            <span class="eq-step-number">06</span>
-            <h3>Südlager befestigen</h3>
-            <p>Holzblock mit M8-Gewindeeinsätzen montieren und die Leichtgängigkeit prüfen.</p>
-          </article>
-        </div>
-        <div class="eq-gallery">
-          <figure class="eq-photo-card">
-            <img src="images/build/parts-overview.webp" alt="Holzplatten, Lager, Wellen und weitere mechanische Bauteile" />
-            <figcaption>Mechanische Bauteile vor dem Zusammenbau</figcaption>
-          </figure>
-          <figure class="eq-photo-card">
-            <img src="images/build/linear-shafts.webp" alt="In vier Stehlagern montierte Linearwellen" />
-            <figcaption>Nordlager mit UCP204-Stehlagern und Linearwellen</figcaption>
-          </figure>
-          <figure class="eq-photo-card">
-            <img src="images/build/south-bearing.webp" alt="Montiertes Südlager aus Holzblock und Kugelgelenk" />
-            <figcaption>Holzblock und Kugelgelenk bilden das Südlager</figcaption>
-          </figure>
         </div>
       </section>
 
