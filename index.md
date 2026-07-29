@@ -249,6 +249,36 @@
   </p>
 </section>
 
+<section class="eq-section">
+  <h2>Aufbau in 5 Schritten</h2>
+  <p>
+    Die Website zeigt nur den Überblick. Die genauen Maße, Bohrungen, Montageschritte und Elektronikdetails
+    stehen in der PDF-Bauanleitung.
+  </p>
+  <div class="eq-grid eq-steps">
+    <div class="eq-card eq-step">
+      <h3>Grundplatte vorbereiten</h3>
+      <p>Möbelfüße montieren und die Stehlager zunächst handfest auf der Grundplatte befestigen.</p>
+    </div>
+    <div class="eq-card eq-step">
+      <h3>Linearwellen einsetzen</h3>
+      <p>Linearwellen durch die Stehlager schieben, ausrichten und anschließend mit den Madenschrauben fixieren.</p>
+    </div>
+    <div class="eq-card eq-step">
+      <h3>Tischplatte vorbereiten</h3>
+      <p>Gewindeeinsatz setzen, Kugelgelenk einschrauben und die bewegliche Tischplatte für das Südlager vorbereiten.</p>
+    </div>
+    <div class="eq-card eq-step">
+      <h3>Kreissegmente montieren</h3>
+      <p>Kreissegmente mit Gewindeeinsätzen an der Tischplatte verschrauben und das Südlager montieren.</p>
+    </div>
+    <div class="eq-card eq-step">
+      <h3>Antrieb anbauen</h3>
+      <p>Motorhalter, GT2-Riemen, Elektronikgehäuse und Endstops montieren und anschließend die Plattform prüfen.</p>
+    </div>
+  </div>
+</section>
+
 <section class="eq-section" id="ressourcen">
   <h2>Dateien und Ressourcen</h2>
   <p>
@@ -307,35 +337,7 @@
   </div>
 </section>
 
-<section class="eq-section">
-  <h2>Aufbau in 5 Schritten</h2>
-  <p>
-    Die Website zeigt nur den Überblick. Die genauen Maße, Bohrungen, Montageschritte und Elektronikdetails
-    stehen in der PDF-Bauanleitung.
-  </p>
-  <div class="eq-grid eq-steps">
-    <div class="eq-card eq-step">
-      <h3>Grundplatte vorbereiten</h3>
-      <p>Möbelfüße montieren und die Stehlager zunächst handfest auf der Grundplatte befestigen.</p>
-    </div>
-    <div class="eq-card eq-step">
-      <h3>Linearwellen einsetzen</h3>
-      <p>Linearwellen durch die Stehlager schieben, ausrichten und anschließend mit den Madenschrauben fixieren.</p>
-    </div>
-    <div class="eq-card eq-step">
-      <h3>Tischplatte vorbereiten</h3>
-      <p>Gewindeeinsatz setzen, Kugelgelenk einschrauben und die bewegliche Tischplatte für das Südlager vorbereiten.</p>
-    </div>
-    <div class="eq-card eq-step">
-      <h3>Kreissegmente montieren</h3>
-      <p>Kreissegmente mit Gewindeeinsätzen an der Tischplatte verschrauben und das Südlager montieren.</p>
-    </div>
-    <div class="eq-card eq-step">
-      <h3>Antrieb anbauen</h3>
-      <p>Motorhalter, GT2-Riemen, Elektronikgehäuse und Endstops montieren und anschließend die Plattform prüfen.</p>
-    </div>
-  </div>
-</section>
+
 
 <section class="eq-section">
   <h2>Bauanleitung</h2>
