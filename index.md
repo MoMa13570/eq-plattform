@@ -1040,6 +1040,14 @@ lang: de
             </span>
             <span class="eq-resource-arrow">→</span>
           </a>
+          <a class="eq-resource" href="https://mende-cnc.de/" target="_blank" rel="noopener">
+            <span class="eq-resource-type">Beispielanbieter</span>
+            <span>
+              <strong>Teile fertigen lassen</strong>
+              <small>Holzteile fräsen und Gehäuseteile per 3D-Druck herstellen lassen.</small>
+            </span>
+            <span class="eq-resource-arrow">↗</span>
+          </a>
         </div>
       </section>
 
