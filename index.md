@@ -974,7 +974,7 @@ lang: de
           </article>
           <article class="eq-card">
             <span class="eq-card-label">abhängig vom Breitengrad</span>
-            <h3>Aluminiumsegmente</h3>
+            <h3>Segmente und Südlager</h3>
             <p>
               Kreissegmente und Südlager für Winkel von 40 bis 60 Grad stehen
               als STEP-Dateien zur Verfügung.
