@@ -973,11 +973,11 @@ lang: de
             </p>
           </article>
           <article class="eq-card">
-            <span class="eq-card-label">Alternative</span>
+            <span class="eq-card-label">abhängig vom Breitengrad</span>
             <h3>Aluminiumsegmente</h3>
             <p>
-              Kreissegmente für Winkel von 40 bis 60 Grad stehen zusätzlich
-              als STEP-Dateien für Aluminium bereit.
+              Kreissegmente und Südlager für Winkel von 40 bis 60 Grad stehen
+              als STEP-Dateien zur Verfügung.
             </p>
           </article>
         </div>
