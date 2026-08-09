@@ -632,26 +632,6 @@ lang: de
     stroke-dasharray: 5 5;
   }
 
-  .eq-projection-plane {
-    fill: rgba(8, 126, 132, 0.035);
-    stroke: var(--eq-line);
-    stroke-width: 1;
-  }
-
-  .eq-projection-depth {
-    fill: none;
-    stroke: var(--eq-line);
-    stroke-width: 1.25;
-  }
-
-  .eq-projection-ray {
-    fill: none;
-    stroke: var(--eq-muted);
-    stroke-width: 1;
-    stroke-dasharray: 3 4;
-    opacity: 0.72;
-  }
-
   .eq-projection-ellipse {
     fill: rgba(8, 126, 132, 0.1);
     stroke: var(--eq-accent);
@@ -1100,7 +1080,7 @@ lang: de
         <div class="eq-projection" id="eq-projection-explainer">
           <div class="eq-projection-top">
             <p>
-              Die räumliche Animation zeigt zuerst die Projektion des Kreises zur Ellipse und
+              Die Animation zeigt zuerst die Projektion des Kreises zur Ellipse und
               anschließend die Korrektur für die um 30° verstellten Rollen.
             </p>
             <button class="eq-button eq-projection-play" id="eq-projection-play" type="button">
@@ -1114,7 +1094,7 @@ lang: de
                 <h3 id="eq-projection-step-one">1 · Kreis → Ellipse</h3>
                 <span class="eq-projection-value" id="eq-projection-phi-value">φ = 50° · cos(φ) = 0,643</span>
               </div>
-              <svg class="eq-projection-svg" id="eq-projection-left" role="img" aria-label="Räumliche Projektion eines geneigten Kreises auf eine Ellipse; die rote VNS-Segmentfläche liegt unten rechts und wird mit Kosinus Phi skaliert"></svg>
+              <svg class="eq-projection-svg" id="eq-projection-left" role="img" aria-label="Projektion eines Kreises auf eine Ellipse; die rote VNS-Segmentfläche liegt unten rechts und wird mit Kosinus Phi skaliert"></svg>
             </article>
 
             <article class="eq-projection-panel" aria-labelledby="eq-projection-step-two">
@@ -1122,7 +1102,7 @@ lang: de
                 <h3 id="eq-projection-step-two">2 · Rollenwinkel β</h3>
                 <span class="eq-projection-value" id="eq-projection-beta-value">30° · Faktor 1,155</span>
               </div>
-              <svg class="eq-projection-svg" id="eq-projection-right" role="img" aria-label="Räumliche Darstellung der Rollenverstellung; Ellipse und rote VNS-Segmentfläche werden um Beta gedreht und horizontal mit dem Kehrwert von Kosinus Beta gestreckt"></svg>
+              <svg class="eq-projection-svg" id="eq-projection-right" role="img" aria-label="Darstellung der Rollenverstellung; Ellipse und rote VNS-Segmentfläche werden um Beta gedreht und horizontal mit dem Kehrwert von Kosinus Beta gestreckt"></svg>
             </article>
           </div>
 
@@ -1409,18 +1389,6 @@ lang: de
       return [transform(rx * left, top), transform(rx * right, top), ...curve];
     }
 
-    function tiltedCirclePoints(cx, cy, radius, tilt) {
-      const points = [];
-      for (let i = 0; i <= 100; i += 1) {
-        const t = i / 100 * Math.PI * 2;
-        const x = radius * Math.cos(t);
-        const y = radius * Math.sin(t) * Math.cos(radians(tilt));
-        const z = radius * 0.92 + radius * Math.sin(t) * Math.sin(radians(tilt));
-        points.push([cx + x + z * 0.28, cy + y - z * 0.18]);
-      }
-      return points;
-    }
-
     function marker(id) {
       return `<defs><marker id="${id}" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto-start-reverse"><path d="M0,0 L7,3.5 L0,7 Z" fill="var(--eq-ink)"></path></marker></defs>`;
     }
@@ -1433,32 +1401,25 @@ lang: de
       const radius = Math.min(92, width * 0.27);
       const projectedRadius = radius * Math.cos(radians(phi));
       const ellipse = ellipsePoints(cx, cy, radius, projectedRadius, 0);
-      const tiltedCircle = tiltedCirclePoints(cx, cy, radius, phi);
       const vnsLeft = 0.24;
       const vnsSegment = ellipseSegmentPoints(cx, cy, radius, projectedRadius);
-      const planeTop = cy - Math.max(projectedRadius, 42) - 20;
-      const planeBottom = cy + Math.max(projectedRadius, 42) + 20;
-      const sampleIndexes = [0, 25, 50, 75];
-      const rays = sampleIndexes.map(index =>
-        `<line class="eq-projection-ray" x1="${tiltedCircle[index][0]}" y1="${tiltedCircle[index][1]}" x2="${ellipse[index][0]}" y2="${ellipse[index][1]}"></line>`
-      ).join("");
+      const guideTop = cy - Math.max(radius, 42) - 14;
+      const guideBottom = cy + Math.max(radius, 42) + 14;
 
       left.setAttribute("viewBox", `0 0 ${width} ${height}`);
       left.setAttribute("height", height);
       left.innerHTML = `${marker("eq-projection-arrow-left")}
-        <path class="eq-projection-plane" d="M ${cx - radius - 22} ${planeTop} L ${cx + radius + 22} ${planeTop} L ${cx + radius + 22} ${planeBottom} L ${cx - radius - 22} ${planeBottom} Z"></path>
         <line class="eq-projection-axis" x1="${cx - radius - 28}" y1="${cy}" x2="${cx + radius + 28}" y2="${cy}"></line>
-        <line class="eq-projection-axis" x1="${cx}" y1="${planeTop - 8}" x2="${cx}" y2="${planeBottom + 8}"></line>
-        ${rays}
-        <path class="eq-projection-reference" d="${toPath(tiltedCircle)}"></path>
+        <line class="eq-projection-axis" x1="${cx}" y1="${guideTop}" x2="${cx}" y2="${guideBottom}"></line>
+        <circle class="eq-projection-reference" cx="${cx}" cy="${cy}" r="${radius}"></circle>
         <path class="eq-projection-ellipse" d="${toPath(ellipse)}"></path>
         <line class="eq-projection-measure" x1="${cx + 18}" y1="${cy - projectedRadius}" x2="${cx + 18}" y2="${cy + projectedRadius}" marker-start="url(#eq-projection-arrow-left)" marker-end="url(#eq-projection-arrow-left)"></line>
         <path class="eq-projection-vns" d="${toPath(vnsSegment)}"></path>
         <text class="eq-projection-vns-label" x="${cx + radius * vnsLeft}" y="${Math.min(266, cy + projectedRadius + 34)}">VNS-Segment</text>
-        <text class="formula" x="${cx - radius + 5}" y="${planeTop + 17}">vertikal × cos(φ)</text>
-        <text class="muted" x="${cx - radius + 5}" y="${planeTop + 34}">${formatFactor(Math.cos(radians(phi)))} · Ausgangshöhe</text>
-        <text class="muted" x="${cx + radius + 18}" y="${planeTop - 5}" text-anchor="end">geneigter Kreis</text>
-        <text x="${cx - radius}" y="292">Projektionsebene</text>`;
+        <text class="formula" x="${cx - radius + 5}" y="${guideTop + 17}">vertikal × cos(φ)</text>
+        <text class="muted" x="${cx - radius + 5}" y="${guideTop + 34}">${formatFactor(Math.cos(radians(phi)))} · Ausgangshöhe</text>
+        <text class="muted" x="${cx - radius}" y="292">Kreis (Referenz)</text>
+        <text x="${cx + radius}" y="292" text-anchor="end">Ellipse</text>`;
     }
 
     function drawRollerProjection() {
@@ -1471,7 +1432,6 @@ lang: de
       const factor = 1 / Math.max(0.01, Math.cos(radians(beta)));
       const before = ellipsePoints(cx, cy, radius, projectedRadius, -beta, 1);
       const after = ellipsePoints(cx, cy, radius, projectedRadius, -beta, factor);
-      const afterBack = after.map(point => [point[0] + 14, point[1] - 10]);
       const vnsSegment = ellipseSegmentPoints(cx, cy, radius, projectedRadius, -beta, factor);
       const xValues = after.map(point => point[0]);
       const minX = Math.min(...xValues);
@@ -1482,18 +1442,11 @@ lang: de
       right.setAttribute("viewBox", `0 0 ${width} ${height}`);
       right.setAttribute("height", height);
       right.innerHTML = `${marker("eq-projection-arrow-right")}
-        <path class="eq-projection-plane" d="M ${cx - radius - 48} ${cy - radius - 32} L ${cx + radius + 60} ${cy - radius - 32} L ${cx + radius + 38} ${cy + radius + 36} L ${cx - radius - 70} ${cy + radius + 36} Z"></path>
         <line class="eq-projection-axis" x1="${cx - radius - 50}" y1="${cy}" x2="${cx + radius + 50}" y2="${cy}"></line>
         <line class="eq-projection-reference" x1="${cx}" y1="${cy - radius - 38}" x2="${cx}" y2="${cy + radius + 38}"></line>
         <path class="eq-projection-before" d="${toPath(before)}"></path>
-        <path class="eq-projection-depth" d="${toPath(afterBack)}"></path>
-        <line class="eq-projection-depth" x1="${after[0][0]}" y1="${after[0][1]}" x2="${afterBack[0][0]}" y2="${afterBack[0][1]}"></line>
-        <line class="eq-projection-depth" x1="${after[25][0]}" y1="${after[25][1]}" x2="${afterBack[25][0]}" y2="${afterBack[25][1]}"></line>
-        <line class="eq-projection-depth" x1="${after[50][0]}" y1="${after[50][1]}" x2="${afterBack[50][0]}" y2="${afterBack[50][1]}"></line>
-        <line class="eq-projection-depth" x1="${after[75][0]}" y1="${after[75][1]}" x2="${afterBack[75][0]}" y2="${afterBack[75][1]}"></line>
         <path class="eq-projection-after" d="${toPath(after)}"></path>
         <path class="eq-projection-vns" d="${toPath(vnsSegment)}"></path>
-        <line class="eq-projection-depth" x1="${cx - Math.cos(angle) * rollerLength + 10}" y1="${cy - Math.sin(angle) * rollerLength - 8}" x2="${cx + Math.cos(angle) * rollerLength + 10}" y2="${cy + Math.sin(angle) * rollerLength - 8}"></line>
         <line class="eq-projection-roller" x1="${cx - Math.cos(angle) * rollerLength}" y1="${cy - Math.sin(angle) * rollerLength}" x2="${cx + Math.cos(angle) * rollerLength}" y2="${cy + Math.sin(angle) * rollerLength}"></line>
         <path class="eq-projection-angle" d="M ${cx + 43} ${cy} A 43 43 0 0 0 ${cx + 43 * Math.cos(angle)} ${cy + 43 * Math.sin(angle)}"></path>
         <text class="formula" x="${cx + 50}" y="${cy - 17}">β = ${Math.round(beta)}°</text>
