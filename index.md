@@ -1122,7 +1122,7 @@ lang: de
                 <h3 id="eq-projection-step-two">2 · Rollenwinkel β</h3>
                 <span class="eq-projection-value" id="eq-projection-beta-value">30° · Faktor 1,155</span>
               </div>
-              <svg class="eq-projection-svg" id="eq-projection-right" role="img" aria-label="Räumliche Darstellung der Rollenverstellung; die gedrehte Ellipse wird horizontal mit dem Kehrwert von Kosinus Beta gestreckt"></svg>
+              <svg class="eq-projection-svg" id="eq-projection-right" role="img" aria-label="Räumliche Darstellung der Rollenverstellung; Ellipse und rote VNS-Segmentfläche werden um Beta gedreht und horizontal mit dem Kehrwert von Kosinus Beta gestreckt"></svg>
             </article>
           </div>
 
@@ -1388,19 +1388,25 @@ lang: de
       return points;
     }
 
-    function ellipseArcPoints(cx, cy, rx, ry, start, end, rotation = 0, horizontalScale = 1) {
+    function ellipseSegmentPoints(cx, cy, rx, ry, rotation = 0, horizontalScale = 1) {
+      const left = 0.24;
+      const right = 0.62;
+      const top = ry * 0.58;
       const angle = radians(rotation);
-      const points = [];
+      const transform = (x, y) => [
+        cx + (x * Math.cos(angle) - y * Math.sin(angle)) * horizontalScale,
+        cy + x * Math.sin(angle) + y * Math.cos(angle)
+      ];
+      const curve = [];
+      const start = Math.acos(right);
+      const end = Math.acos(left);
+
       for (let i = 0; i <= 30; i += 1) {
         const t = start + (end - start) * i / 30;
-        const x = rx * Math.cos(t);
-        const y = ry * Math.sin(t);
-        points.push([
-          cx + (x * Math.cos(angle) - y * Math.sin(angle)) * horizontalScale,
-          cy + x * Math.sin(angle) + y * Math.cos(angle)
-        ]);
+        curve.push(transform(rx * Math.cos(t), ry * Math.sin(t)));
       }
-      return points;
+
+      return [transform(rx * left, top), transform(rx * right, top), ...curve];
     }
 
     function tiltedCirclePoints(cx, cy, radius, tilt) {
@@ -1429,21 +1435,7 @@ lang: de
       const ellipse = ellipsePoints(cx, cy, radius, projectedRadius, 0);
       const tiltedCircle = tiltedCirclePoints(cx, cy, radius, phi);
       const vnsLeft = 0.24;
-      const vnsRight = 0.62;
-      const vnsTop = cy + projectedRadius * 0.58;
-      const vnsCurve = ellipseArcPoints(
-        cx,
-        cy,
-        radius,
-        projectedRadius,
-        Math.acos(vnsRight),
-        Math.acos(vnsLeft)
-      );
-      const vnsSegment = [
-        [cx + radius * vnsLeft, vnsTop],
-        [cx + radius * vnsRight, vnsTop],
-        ...vnsCurve
-      ];
+      const vnsSegment = ellipseSegmentPoints(cx, cy, radius, projectedRadius);
       const planeTop = cy - Math.max(projectedRadius, 42) - 20;
       const planeBottom = cy + Math.max(projectedRadius, 42) + 20;
       const sampleIndexes = [0, 25, 50, 75];
@@ -1480,6 +1472,7 @@ lang: de
       const before = ellipsePoints(cx, cy, radius, projectedRadius, -beta, 1);
       const after = ellipsePoints(cx, cy, radius, projectedRadius, -beta, factor);
       const afterBack = after.map(point => [point[0] + 14, point[1] - 10]);
+      const vnsSegment = ellipseSegmentPoints(cx, cy, radius, projectedRadius, -beta, factor);
       const xValues = after.map(point => point[0]);
       const minX = Math.min(...xValues);
       const maxX = Math.max(...xValues);
@@ -1499,6 +1492,7 @@ lang: de
         <line class="eq-projection-depth" x1="${after[50][0]}" y1="${after[50][1]}" x2="${afterBack[50][0]}" y2="${afterBack[50][1]}"></line>
         <line class="eq-projection-depth" x1="${after[75][0]}" y1="${after[75][1]}" x2="${afterBack[75][0]}" y2="${afterBack[75][1]}"></line>
         <path class="eq-projection-after" d="${toPath(after)}"></path>
+        <path class="eq-projection-vns" d="${toPath(vnsSegment)}"></path>
         <line class="eq-projection-depth" x1="${cx - Math.cos(angle) * rollerLength + 10}" y1="${cy - Math.sin(angle) * rollerLength - 8}" x2="${cx + Math.cos(angle) * rollerLength + 10}" y2="${cy + Math.sin(angle) * rollerLength - 8}"></line>
         <line class="eq-projection-roller" x1="${cx - Math.cos(angle) * rollerLength}" y1="${cy - Math.sin(angle) * rollerLength}" x2="${cx + Math.cos(angle) * rollerLength}" y2="${cy + Math.sin(angle) * rollerLength}"></line>
         <path class="eq-projection-angle" d="M ${cx + 43} ${cy} A 43 43 0 0 0 ${cx + 43 * Math.cos(angle)} ${cy + 43 * Math.sin(angle)}"></path>
