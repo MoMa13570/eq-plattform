@@ -672,10 +672,9 @@ lang: de
   }
 
   .eq-projection-vns {
-    fill: none;
+    fill: var(--eq-red);
     stroke: var(--eq-red);
-    stroke-width: 5;
-    stroke-linecap: round;
+    stroke-width: 1.5;
   }
 
   .eq-projection-vns-label {
@@ -1115,7 +1114,7 @@ lang: de
                 <h3 id="eq-projection-step-one">1 · Kreis → Ellipse</h3>
                 <span class="eq-projection-value" id="eq-projection-phi-value">φ = 50° · cos(φ) = 0,643</span>
               </div>
-              <svg class="eq-projection-svg" id="eq-projection-left" role="img" aria-label="Räumliche Projektion eines geneigten Kreises auf eine Ellipse; das rote VNS-Segment liegt unten rechts und wird mit Kosinus Phi skaliert"></svg>
+              <svg class="eq-projection-svg" id="eq-projection-left" role="img" aria-label="Räumliche Projektion eines geneigten Kreises auf eine Ellipse; die rote VNS-Segmentfläche liegt unten rechts und wird mit Kosinus Phi skaliert"></svg>
             </article>
 
             <article class="eq-projection-panel" aria-labelledby="eq-projection-step-two">
@@ -1374,10 +1373,6 @@ lang: de
     const toPath = points => points.map((point, index) =>
       `${index === 0 ? "M" : "L"}${point[0].toFixed(2)},${point[1].toFixed(2)}`
     ).join(" ") + " Z";
-    const toOpenPath = points => points.map((point, index) =>
-      `${index === 0 ? "M" : "L"}${point[0].toFixed(2)},${point[1].toFixed(2)}`
-    ).join(" ");
-
     function ellipsePoints(cx, cy, rx, ry, rotation, horizontalScale = 1) {
       const angle = radians(rotation);
       const points = [];
@@ -1433,7 +1428,22 @@ lang: de
       const projectedRadius = radius * Math.cos(radians(phi));
       const ellipse = ellipsePoints(cx, cy, radius, projectedRadius, 0);
       const tiltedCircle = tiltedCirclePoints(cx, cy, radius, phi);
-      const vnsArc = ellipseArcPoints(cx, cy, radius, projectedRadius, 0.16, 1.28);
+      const vnsLeft = 0.24;
+      const vnsRight = 0.62;
+      const vnsTop = cy + projectedRadius * 0.58;
+      const vnsCurve = ellipseArcPoints(
+        cx,
+        cy,
+        radius,
+        projectedRadius,
+        Math.acos(vnsRight),
+        Math.acos(vnsLeft)
+      );
+      const vnsSegment = [
+        [cx + radius * vnsLeft, vnsTop],
+        [cx + radius * vnsRight, vnsTop],
+        ...vnsCurve
+      ];
       const planeTop = cy - Math.max(projectedRadius, 42) - 20;
       const planeBottom = cy + Math.max(projectedRadius, 42) + 20;
       const sampleIndexes = [0, 25, 50, 75];
@@ -1451,9 +1461,8 @@ lang: de
         <path class="eq-projection-reference" d="${toPath(tiltedCircle)}"></path>
         <path class="eq-projection-ellipse" d="${toPath(ellipse)}"></path>
         <line class="eq-projection-measure" x1="${cx + 18}" y1="${cy - projectedRadius}" x2="${cx + 18}" y2="${cy + projectedRadius}" marker-start="url(#eq-projection-arrow-left)" marker-end="url(#eq-projection-arrow-left)"></line>
-        <path class="eq-projection-vns" d="${toOpenPath(vnsArc)}"></path>
-        <line class="eq-projection-depth" x1="${cx + radius * 0.52}" y1="${cy + projectedRadius * 0.84}" x2="${cx + radius * 0.72}" y2="${Math.min(258, cy + projectedRadius + 31)}"></line>
-        <text class="eq-projection-vns-label" x="${cx + radius * 0.74}" y="${Math.min(264, cy + projectedRadius + 35)}">VNS-Segment</text>
+        <path class="eq-projection-vns" d="${toPath(vnsSegment)}"></path>
+        <text class="eq-projection-vns-label" x="${cx + radius * vnsLeft}" y="${Math.min(266, cy + projectedRadius + 34)}">VNS-Segment</text>
         <text class="formula" x="${cx - radius + 5}" y="${planeTop + 17}">vertikal × cos(φ)</text>
         <text class="muted" x="${cx - radius + 5}" y="${planeTop + 34}">${formatFactor(Math.cos(radians(phi)))} · Ausgangshöhe</text>
         <text class="muted" x="${cx + radius + 18}" y="${planeTop - 5}" text-anchor="end">geneigter Kreis</text>
