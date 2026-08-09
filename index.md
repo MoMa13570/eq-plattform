@@ -547,6 +547,184 @@ lang: de
     font-size: 0.92rem;
   }
 
+  .eq-projection {
+    padding: clamp(1.4rem, 4vw, 2.4rem);
+    border: 1px solid var(--eq-line);
+    border-radius: var(--eq-radius);
+    background: var(--eq-surface);
+    box-shadow: var(--eq-shadow);
+  }
+
+  .eq-projection-top,
+  .eq-projection-panel-head,
+  .eq-projection-control-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .eq-projection-top {
+    margin-bottom: 1.5rem;
+  }
+
+  .eq-projection-top p {
+    max-width: 44rem;
+    margin-bottom: 0;
+    color: var(--eq-muted);
+  }
+
+  .eq-projection-play {
+    flex: 0 0 auto;
+    cursor: pointer;
+  }
+
+  .eq-projection-play:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+
+  .eq-projection-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(1rem, 3vw, 2rem);
+  }
+
+  .eq-projection-panel {
+    min-width: 0;
+  }
+
+  .eq-projection-panel-head {
+    align-items: baseline;
+    margin-bottom: 0.4rem;
+  }
+
+  .eq-projection-panel h3 {
+    margin-bottom: 0;
+    color: var(--eq-ink);
+    font-size: 1.05rem;
+  }
+
+  .eq-projection-value {
+    color: var(--eq-muted);
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .eq-projection-svg {
+    display: block;
+    width: 100%;
+    min-height: 19rem;
+    overflow: visible;
+  }
+
+  .eq-projection-axis {
+    stroke: var(--eq-line);
+    stroke-width: 1;
+  }
+
+  .eq-projection-reference {
+    fill: none;
+    stroke: var(--eq-line);
+    stroke-width: 1.5;
+    stroke-dasharray: 5 5;
+  }
+
+  .eq-projection-ellipse {
+    fill: rgba(8, 126, 132, 0.1);
+    stroke: var(--eq-accent);
+    stroke-width: 2.5;
+  }
+
+  .eq-projection-before {
+    fill: none;
+    stroke: var(--eq-muted);
+    stroke-width: 1.5;
+    stroke-dasharray: 6 5;
+  }
+
+  .eq-projection-after {
+    fill: rgba(233, 155, 56, 0.12);
+    stroke: var(--eq-warm);
+    stroke-width: 2.5;
+  }
+
+  .eq-projection-vns {
+    stroke: var(--eq-warm);
+    stroke-width: 4;
+    stroke-linecap: round;
+  }
+
+  .eq-projection-roller {
+    stroke: var(--eq-accent);
+    stroke-width: 4;
+    stroke-linecap: round;
+  }
+
+  .eq-projection-measure,
+  .eq-projection-angle {
+    fill: none;
+    stroke: var(--eq-ink);
+    stroke-width: 1.25;
+  }
+
+  .eq-projection-svg text {
+    fill: var(--eq-ink);
+    font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 12px;
+  }
+
+  .eq-projection-svg .muted {
+    fill: var(--eq-muted);
+  }
+
+  .eq-projection-svg .formula {
+    font-weight: 700;
+  }
+
+  .eq-projection-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem 2rem;
+    margin-top: 1rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--eq-line);
+  }
+
+  .eq-projection-control label {
+    color: var(--eq-ink);
+    font-size: 0.88rem;
+    font-weight: 650;
+  }
+
+  .eq-projection-control output {
+    color: var(--eq-muted);
+    font-size: 0.84rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .eq-projection-control input {
+    width: 100%;
+    margin: 0.65rem 0 0;
+    accent-color: var(--eq-accent);
+  }
+
+  .eq-projection-progress {
+    height: 3px;
+    margin-top: 1rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--eq-surface-soft);
+  }
+
+  .eq-projection-progress span {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: var(--eq-accent);
+  }
+
   .eq-resource-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -663,6 +841,10 @@ lang: de
     .eq-section-heading {
       gap: 1rem;
     }
+
+    .eq-projection-grid {
+      grid-template-columns: 1fr;
+    }
   }
 
   @media (max-width: 620px) {
@@ -714,6 +896,21 @@ lang: de
     .eq-footer {
       flex-direction: column;
     }
+
+    .eq-projection-top,
+    .eq-projection-panel-head {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .eq-projection-play {
+      width: 100%;
+    }
+
+    .eq-projection-controls {
+      grid-template-columns: 1fr;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -738,6 +935,7 @@ lang: de
       </a>
       <div class="eq-nav-links">
         <a href="#prinzip">Prinzip</a>
+        <a href="#projektion">Projektion</a>
         <a href="#aufbau">Aufbau</a>
         <a href="#antrieb">Antrieb</a>
         <a href="#downloads">Downloads</a>
@@ -864,6 +1062,64 @@ lang: de
         </div>
       </section>
 
+      <section class="eq-section" id="projektion" aria-labelledby="projektion-title">
+        <div class="eq-section-heading">
+          <h2 id="projektion-title">Vom Kreis zum Rollensegment</h2>
+          <p>
+            Zwei Projektionen bestimmen die Form: Der Breitengrad skaliert das
+            VNS-Segment vertikal, der Rollenwinkel korrigiert die horizontale Länge.
+          </p>
+        </div>
+
+        <div class="eq-projection" id="eq-projection-explainer">
+          <div class="eq-projection-top">
+            <p>
+              Die Animation zeigt zuerst die Projektion des Kreises zur Ellipse und
+              anschließend die Korrektur für die um 30° verstellten Rollen.
+            </p>
+            <button class="eq-button eq-projection-play" id="eq-projection-play" type="button">
+              Animation abspielen
+            </button>
+          </div>
+
+          <div class="eq-projection-grid">
+            <article class="eq-projection-panel" aria-labelledby="eq-projection-step-one">
+              <div class="eq-projection-panel-head">
+                <h3 id="eq-projection-step-one">1 · Kreis → Ellipse</h3>
+                <span class="eq-projection-value" id="eq-projection-phi-value">φ = 50° · cos(φ) = 0,643</span>
+              </div>
+              <svg class="eq-projection-svg" id="eq-projection-left" role="img" aria-label="Projektion eines Kreises auf eine Ellipse; das VNS-Segment wird mit Kosinus Phi skaliert"></svg>
+            </article>
+
+            <article class="eq-projection-panel" aria-labelledby="eq-projection-step-two">
+              <div class="eq-projection-panel-head">
+                <h3 id="eq-projection-step-two">2 · Rollenwinkel β</h3>
+                <span class="eq-projection-value" id="eq-projection-beta-value">30° · Faktor 1,155</span>
+              </div>
+              <svg class="eq-projection-svg" id="eq-projection-right" role="img" aria-label="Die gedrehte Ellipse wird horizontal mit dem Kehrwert von Kosinus Beta gestreckt"></svg>
+            </article>
+          </div>
+
+          <div class="eq-projection-controls">
+            <div class="eq-projection-control">
+              <div class="eq-projection-control-head">
+                <label for="eq-projection-phi">Breitengrad φ</label>
+                <output id="eq-projection-phi-output" for="eq-projection-phi">50°</output>
+              </div>
+              <input id="eq-projection-phi" type="range" min="0" max="70" step="1" value="50" />
+            </div>
+            <div class="eq-projection-control">
+              <div class="eq-projection-control-head">
+                <label for="eq-projection-beta">Rollenwinkel β</label>
+                <output id="eq-projection-beta-output" for="eq-projection-beta">30°</output>
+              </div>
+              <input id="eq-projection-beta" type="range" min="0" max="45" step="1" value="30" />
+            </div>
+          </div>
+          <div class="eq-projection-progress" aria-hidden="true"><span id="eq-projection-progress"></span></div>
+        </div>
+      </section>
+
       <section class="eq-section">
         <div class="eq-section-heading">
           <h2>Bauteile auf einen Blick</h2>
@@ -973,11 +1229,11 @@ lang: de
             </p>
           </article>
           <article class="eq-card">
-            <span class="eq-card-label">abhängig vom Breitengrad</span>
-            <h3>Segmente und Südlager</h3>
+            <span class="eq-card-label">Alternative</span>
+            <h3>Aluminiumsegmente</h3>
             <p>
-              Kreissegmente und Südlager für Winkel von 40 bis 60 Grad stehen
-              als STEP-Dateien zur Verfügung.
+              Kreissegmente für Winkel von 40 bis 60 Grad stehen zusätzlich
+              als STEP-Dateien für Aluminium bereit.
             </p>
           </article>
         </div>
@@ -1069,3 +1325,176 @@ lang: de
     </footer>
   </div>
 </div>
+
+<script>
+  (() => {
+    const root = document.getElementById("eq-projection-explainer");
+    if (!root) return;
+
+    const left = document.getElementById("eq-projection-left");
+    const right = document.getElementById("eq-projection-right");
+    const phiInput = document.getElementById("eq-projection-phi");
+    const betaInput = document.getElementById("eq-projection-beta");
+    const playButton = document.getElementById("eq-projection-play");
+    const progress = document.getElementById("eq-projection-progress");
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let phi = Number(phiInput.value);
+    let beta = Number(betaInput.value);
+    let animationFrame = null;
+
+    const radians = degrees => degrees * Math.PI / 180;
+    const formatFactor = value => value.toFixed(3).replace(".", ",");
+    const toPath = points => points.map((point, index) =>
+      `${index === 0 ? "M" : "L"}${point[0].toFixed(2)},${point[1].toFixed(2)}`
+    ).join(" ") + " Z";
+
+    function ellipsePoints(cx, cy, rx, ry, rotation, horizontalScale = 1) {
+      const angle = radians(rotation);
+      const points = [];
+      for (let i = 0; i <= 100; i += 1) {
+        const t = i / 100 * Math.PI * 2;
+        const x = rx * Math.cos(t);
+        const y = ry * Math.sin(t);
+        points.push([
+          cx + (x * Math.cos(angle) - y * Math.sin(angle)) * horizontalScale,
+          cy + x * Math.sin(angle) + y * Math.cos(angle)
+        ]);
+      }
+      return points;
+    }
+
+    function marker(id) {
+      return `<defs><marker id="${id}" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto-start-reverse"><path d="M0,0 L7,3.5 L0,7 Z" fill="var(--eq-ink)"></path></marker></defs>`;
+    }
+
+    function drawFirstProjection() {
+      const width = Math.max(280, left.parentElement.clientWidth);
+      const height = 304;
+      const cx = width / 2;
+      const cy = 140;
+      const radius = Math.min(102, width * 0.29);
+      const projectedRadius = radius * Math.cos(radians(phi));
+      const ellipse = ellipsePoints(cx, cy, radius, projectedRadius, 0);
+
+      left.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      left.setAttribute("height", height);
+      left.innerHTML = `${marker("eq-projection-arrow-left")}
+        <line class="eq-projection-axis" x1="${cx - radius - 24}" y1="${cy}" x2="${cx + radius + 24}" y2="${cy}"></line>
+        <line class="eq-projection-axis" x1="${cx}" y1="${cy - radius - 20}" x2="${cx}" y2="${cy + radius + 20}"></line>
+        <circle class="eq-projection-reference" cx="${cx}" cy="${cy}" r="${radius}"></circle>
+        <path class="eq-projection-ellipse" d="${toPath(ellipse)}"></path>
+        <line class="eq-projection-vns" x1="${cx}" y1="${cy - projectedRadius}" x2="${cx}" y2="${cy + projectedRadius}"></line>
+        <line class="eq-projection-measure" x1="${cx + 18}" y1="${cy - projectedRadius}" x2="${cx + 18}" y2="${cy + projectedRadius}" marker-start="url(#eq-projection-arrow-left)" marker-end="url(#eq-projection-arrow-left)"></line>
+        <text class="formula" x="${cx + 29}" y="${cy - 3}">VNS × cos(φ)</text>
+        <text class="muted" x="${cx + 29}" y="${cy + 15}">${formatFactor(Math.cos(radians(phi)))} · VNS₀</text>
+        <text class="muted" x="${cx - radius}" y="282">Kreis (Referenz)</text>
+        <text x="${cx + radius}" y="282" text-anchor="end">Ellipse</text>`;
+    }
+
+    function drawRollerProjection() {
+      const width = Math.max(280, right.parentElement.clientWidth);
+      const height = 304;
+      const cx = width / 2;
+      const cy = 146;
+      const radius = Math.min(82, width * 0.23);
+      const projectedRadius = radius * Math.cos(radians(phi));
+      const factor = 1 / Math.max(0.01, Math.cos(radians(beta)));
+      const before = ellipsePoints(cx, cy, radius, projectedRadius, -beta, 1);
+      const after = ellipsePoints(cx, cy, radius, projectedRadius, -beta, factor);
+      const xValues = after.map(point => point[0]);
+      const minX = Math.min(...xValues);
+      const maxX = Math.max(...xValues);
+      const rollerLength = radius * 1.4;
+      const angle = radians(-beta);
+
+      right.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      right.setAttribute("height", height);
+      right.innerHTML = `${marker("eq-projection-arrow-right")}
+        <line class="eq-projection-axis" x1="${cx - radius - 42}" y1="${cy}" x2="${cx + radius + 42}" y2="${cy}"></line>
+        <line class="eq-projection-reference" x1="${cx}" y1="${cy - radius - 38}" x2="${cx}" y2="${cy + radius + 38}"></line>
+        <path class="eq-projection-before" d="${toPath(before)}"></path>
+        <path class="eq-projection-after" d="${toPath(after)}"></path>
+        <line class="eq-projection-roller" x1="${cx - Math.cos(angle) * rollerLength}" y1="${cy - Math.sin(angle) * rollerLength}" x2="${cx + Math.cos(angle) * rollerLength}" y2="${cy + Math.sin(angle) * rollerLength}"></line>
+        <path class="eq-projection-angle" d="M ${cx + 43} ${cy} A 43 43 0 0 0 ${cx + 43 * Math.cos(angle)} ${cy + 43 * Math.sin(angle)}"></path>
+        <text class="formula" x="${cx + 50}" y="${cy - 17}">β = ${Math.round(beta)}°</text>
+        <line class="eq-projection-measure" x1="${minX}" y1="${cy + radius + 49}" x2="${maxX}" y2="${cy + radius + 49}" marker-start="url(#eq-projection-arrow-right)" marker-end="url(#eq-projection-arrow-right)"></line>
+        <text class="formula" x="${cx}" y="${cy + radius + 40}" text-anchor="middle">horizontal × 1/cos(β) = ${formatFactor(factor)}</text>
+        <text class="muted" x="${cx}" y="292" text-anchor="middle">gestrichelt: davor · farbig: korrigiert</text>`;
+    }
+
+    function updateProjection() {
+      const cosPhi = Math.cos(radians(phi));
+      const betaFactor = 1 / Math.max(0.01, Math.cos(radians(beta)));
+      document.getElementById("eq-projection-phi-value").textContent = `φ = ${Math.round(phi)}° · cos(φ) = ${formatFactor(cosPhi)}`;
+      document.getElementById("eq-projection-beta-value").textContent = `${Math.round(beta)}° · Faktor ${formatFactor(betaFactor)}`;
+      document.getElementById("eq-projection-phi-output").textContent = `${Math.round(phi)}°`;
+      document.getElementById("eq-projection-beta-output").textContent = `${Math.round(beta)}°`;
+      drawFirstProjection();
+      drawRollerProjection();
+    }
+
+    phiInput.addEventListener("input", event => {
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+      animationFrame = null;
+      playButton.disabled = false;
+      phi = Number(event.target.value);
+      updateProjection();
+    });
+
+    betaInput.addEventListener("input", event => {
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+      animationFrame = null;
+      playButton.disabled = false;
+      beta = Number(event.target.value);
+      updateProjection();
+    });
+
+    playButton.addEventListener("click", () => {
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+      const targetPhi = Number(phiInput.value);
+      const targetBeta = Number(betaInput.value);
+      const duration = prefersReducedMotion ? 1 : 4200;
+      const start = performance.now();
+      playButton.disabled = true;
+
+      const tick = now => {
+        const total = Math.min(1, (now - start) / duration);
+        if (total < 0.47) {
+          phi = targetPhi * (total / 0.47);
+          beta = 0;
+        } else if (total < 0.57) {
+          phi = targetPhi;
+          beta = 0;
+        } else {
+          phi = targetPhi;
+          beta = targetBeta * ((total - 0.57) / 0.43);
+        }
+        progress.style.width = `${total * 100}%`;
+        updateProjection();
+
+        if (total < 1) {
+          animationFrame = requestAnimationFrame(tick);
+        } else {
+          phi = targetPhi;
+          beta = targetBeta;
+          animationFrame = null;
+          playButton.disabled = false;
+          updateProjection();
+        }
+      };
+
+      animationFrame = requestAnimationFrame(tick);
+    });
+
+    let resizeFrame = null;
+    window.addEventListener("resize", () => {
+      if (resizeFrame) cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() => {
+        resizeFrame = null;
+        updateProjection();
+      });
+    });
+
+    updateProjection();
+  })();
+</script>
