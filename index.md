@@ -1102,7 +1102,7 @@ lang: de
                 <h3 id="eq-projection-step-two">2 · Rollenwinkel β</h3>
                 <span class="eq-projection-value" id="eq-projection-beta-value">30° · Faktor 1,155</span>
               </div>
-              <svg class="eq-projection-svg" id="eq-projection-right" role="img" aria-label="Darstellung der Rollenverstellung; Ellipse und rote VNS-Segmentfläche werden um Beta gedreht und horizontal mit dem Kehrwert von Kosinus Beta gestreckt"></svg>
+              <svg class="eq-projection-svg" id="eq-projection-right" role="img" aria-label="Darstellung der Rollenverstellung; die türkise Rollenlinie und die rote VNS-Segmentfläche bleiben fest, nur die Ellipse wird um Beta gedreht und horizontal mit dem Kehrwert von Kosinus Beta gestreckt"></svg>
             </article>
           </div>
 
@@ -1430,9 +1430,9 @@ lang: de
       const radius = Math.min(82, width * 0.23);
       const projectedRadius = radius * Math.cos(radians(phi));
       const factor = 1 / Math.max(0.01, Math.cos(radians(beta)));
-      const before = ellipsePoints(cx, cy, radius, projectedRadius, -beta, 1);
+      const before = ellipsePoints(cx, cy, radius, projectedRadius, 0, 1);
       const after = ellipsePoints(cx, cy, radius, projectedRadius, -beta, factor);
-      const vnsSegment = ellipseSegmentPoints(cx, cy, radius, projectedRadius, -beta, factor);
+      const vnsSegment = ellipseSegmentPoints(cx, cy, radius, projectedRadius, 0, 1);
       const xValues = after.map(point => point[0]);
       const minX = Math.min(...xValues);
       const maxX = Math.max(...xValues);
@@ -1447,12 +1447,12 @@ lang: de
         <path class="eq-projection-before" d="${toPath(before)}"></path>
         <path class="eq-projection-after" d="${toPath(after)}"></path>
         <path class="eq-projection-vns" d="${toPath(vnsSegment)}"></path>
-        <line class="eq-projection-roller" x1="${cx - Math.cos(angle) * rollerLength}" y1="${cy - Math.sin(angle) * rollerLength}" x2="${cx + Math.cos(angle) * rollerLength}" y2="${cy + Math.sin(angle) * rollerLength}"></line>
+        <line class="eq-projection-roller" x1="${cx - rollerLength}" y1="${cy}" x2="${cx + rollerLength}" y2="${cy}"></line>
         <path class="eq-projection-angle" d="M ${cx + 43} ${cy} A 43 43 0 0 0 ${cx + 43 * Math.cos(angle)} ${cy + 43 * Math.sin(angle)}"></path>
         <text class="formula" x="${cx + 50}" y="${cy - 17}">β = ${Math.round(beta)}°</text>
         <line class="eq-projection-measure" x1="${minX}" y1="${cy + radius + 49}" x2="${maxX}" y2="${cy + radius + 49}" marker-start="url(#eq-projection-arrow-right)" marker-end="url(#eq-projection-arrow-right)"></line>
         <text class="formula" x="${cx}" y="${cy + radius + 40}" text-anchor="middle">horizontal × 1/cos(β) = ${formatFactor(factor)}</text>
-        <text class="muted" x="${cx}" y="292" text-anchor="middle">gestrichelt: davor · farbig: korrigiert</text>`;
+        <text class="muted" x="${cx}" y="292" text-anchor="middle">Rolle + VNS fest · Ellipse dreht und streckt</text>`;
     }
 
     function updateProjection() {
