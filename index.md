@@ -557,7 +557,6 @@ lang: de
   }
 
   .eq-projection-top,
-  .eq-projection-panel-head,
   .eq-projection-control-head {
     display: flex;
     align-items: center;
@@ -585,146 +584,120 @@ lang: de
     opacity: 0.65;
   }
 
-  .eq-projection-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: clamp(1rem, 3vw, 2rem);
+  .eq-projection-3d-shell {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--eq-line);
+    border-radius: 1rem;
+    background:
+      radial-gradient(circle at 50% 42%, rgba(8, 126, 132, 0.09), transparent 52%),
+      var(--eq-bg);
   }
 
-  .eq-projection-panel {
-    min-width: 0;
+  .eq-projection-3d {
+    width: 100%;
+    height: clamp(25rem, 52vw, 35rem);
+    cursor: grab;
+    touch-action: none;
   }
 
-  .eq-projection-panel-head {
-    align-items: baseline;
-    margin-bottom: 0.4rem;
+  .eq-projection-3d:active {
+    cursor: grabbing;
   }
 
-  .eq-projection-panel h3 {
-    margin-bottom: 0;
-    color: var(--eq-ink);
-    font-size: 1.05rem;
-  }
-
-  .eq-projection-value {
-    color: var(--eq-muted);
-    font-size: 0.82rem;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
-
-  .eq-projection-svg {
+  .eq-projection-3d canvas {
     display: block;
     width: 100%;
-    min-height: 19rem;
-    overflow: visible;
+    height: 100%;
   }
 
-  .eq-projection-axis {
-    stroke: var(--eq-line);
-    stroke-width: 1;
+  .eq-projection-3d-loading {
+    display: grid;
+    height: 100%;
+    place-items: center;
+    color: var(--eq-muted);
+    font-size: 0.88rem;
   }
 
-  .eq-projection-reference {
-    fill: none;
-    stroke: var(--eq-line);
-    stroke-width: 1.5;
-    stroke-dasharray: 5 5;
+  .eq-projection-3d-status {
+    position: absolute;
+    top: 0.8rem;
+    left: 0.8rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    pointer-events: none;
   }
 
-  .eq-projection-ellipse {
-    fill: rgba(8, 126, 132, 0.1);
-    stroke: var(--eq-accent);
-    stroke-width: 2.5;
+  .eq-projection-3d-value {
+    padding: 0.35rem 0.55rem;
+    border: 1px solid var(--eq-line);
+    border-radius: 0.55rem;
+    background: rgba(255, 255, 255, 0.86);
+    color: var(--eq-ink);
+    font-size: 0.78rem;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    backdrop-filter: blur(8px);
   }
 
-  .eq-projection-before {
-    fill: none;
-    stroke: var(--eq-muted);
-    stroke-width: 1.5;
-    stroke-dasharray: 6 5;
+  .eq-projection-viewbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 0.8rem;
   }
 
-  .eq-projection-after {
-    fill: rgba(233, 155, 56, 0.12);
-    stroke: var(--eq-warm);
-    stroke-width: 2.5;
+  .eq-projection-view-buttons,
+  .eq-projection-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
   }
 
-  .eq-projection-vns {
-    fill: rgba(200, 50, 43, 0.78);
-    stroke: var(--eq-red);
-    stroke-width: 1.5;
+  .eq-projection-view-button {
+    min-height: 2.35rem;
+    padding: 0.42rem 0.72rem;
+    border: 1px solid var(--eq-line);
+    border-radius: 0.6rem;
+    background: var(--eq-surface);
+    color: var(--eq-ink);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 650;
   }
 
-  .eq-projection-vns-reference {
-    fill: none;
-    stroke: var(--eq-red);
-    stroke-width: 2;
-    stroke-dasharray: 4 3;
+  .eq-projection-view-button[aria-pressed="true"] {
+    border-color: var(--eq-accent);
+    background: var(--eq-surface-soft);
+    color: var(--eq-accent-dark);
   }
 
-  .eq-projection-vns-measure {
-    stroke: var(--eq-red);
-    stroke-width: 1.25;
+  .eq-projection-hint {
+    color: var(--eq-muted);
+    font-size: 0.8rem;
   }
 
-  .eq-projection-vns-label {
-    fill: var(--eq-red) !important;
-    font-weight: 700;
+  .eq-projection-legend {
+    margin-top: 0.9rem;
+    color: var(--eq-muted);
+    font-size: 0.78rem;
   }
 
-  .eq-projection-inset-axis,
-  .eq-projection-inset-reference,
-  .eq-projection-inset-arc {
-    fill: none;
-    stroke: var(--eq-line);
-    stroke-width: 1.25;
+  .eq-projection-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
   }
 
-  .eq-projection-inset-reference {
-    stroke: var(--eq-muted);
-    stroke-dasharray: 4 3;
-  }
-
-  .eq-projection-inset-active {
-    stroke: var(--eq-warm);
-    stroke-width: 3;
-    stroke-linecap: round;
-  }
-
-  .eq-projection-inset-arc {
-    stroke: var(--eq-ink);
-  }
-
-  .eq-projection-inset-pivot {
-    fill: var(--eq-ink);
-  }
-
-  .eq-projection-roller {
-    stroke: var(--eq-accent);
-    stroke-width: 4;
-    stroke-linecap: round;
-  }
-
-  .eq-projection-measure {
-    fill: none;
-    stroke: var(--eq-ink);
-    stroke-width: 1.25;
-  }
-
-  .eq-projection-svg text {
-    fill: var(--eq-ink);
-    font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 12px;
-  }
-
-  .eq-projection-svg .muted {
-    fill: var(--eq-muted);
-  }
-
-  .eq-projection-svg .formula {
-    font-weight: 700;
+  .eq-projection-swatch {
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 0.25rem;
+    background: var(--swatch);
   }
 
   .eq-projection-controls {
@@ -886,9 +859,6 @@ lang: de
       gap: 1rem;
     }
 
-    .eq-projection-grid {
-      grid-template-columns: 1fr;
-    }
   }
 
   @media (max-width: 620px) {
@@ -941,8 +911,7 @@ lang: de
       flex-direction: column;
     }
 
-    .eq-projection-top,
-    .eq-projection-panel-head {
+    .eq-projection-top {
       align-items: flex-start;
       flex-direction: column;
       gap: 0.35rem;
@@ -954,6 +923,23 @@ lang: de
 
     .eq-projection-controls {
       grid-template-columns: 1fr;
+    }
+
+    .eq-projection-3d {
+      height: 24rem;
+    }
+
+    .eq-projection-viewbar {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .eq-projection-view-buttons {
+      width: 100%;
+    }
+
+    .eq-projection-view-button {
+      flex: 1 1 auto;
     }
   }
 
@@ -1118,30 +1104,42 @@ lang: de
         <div class="eq-projection" id="eq-projection-explainer">
           <div class="eq-projection-top">
             <p>
-              Die Animation zeigt zuerst die Projektion des Kreises zur Ellipse und
-              anschließend die Korrektur für die um 30° nach hinten verstellten Rollen.
+              Drehe das Modell frei im Raum oder wähle eine feste Ansicht. Die
+              transparente Ebene zeigt, was von der räumlich gedrehten Ellipse in
+              der Vorderansicht sichtbar bleibt.
             </p>
             <button class="eq-button eq-projection-play" id="eq-projection-play" type="button">
               Animation abspielen
             </button>
           </div>
 
-          <div class="eq-projection-grid">
-            <article class="eq-projection-panel" aria-labelledby="eq-projection-step-one">
-              <div class="eq-projection-panel-head">
-                <h3 id="eq-projection-step-one">1 · Kreis → Ellipse</h3>
-                <span class="eq-projection-value" id="eq-projection-phi-value">φ = 50° · cos(φ) = 0,643</span>
-              </div>
-              <svg class="eq-projection-svg" id="eq-projection-left" role="img" aria-label="Projektion eines Kreises auf eine Ellipse; die rote VNS-Segmentfläche liegt unten rechts und wird mit Kosinus Phi skaliert"></svg>
-            </article>
+          <div class="eq-projection-3d-shell">
+            <div
+              class="eq-projection-3d"
+              id="eq-projection-3d"
+              role="img"
+              aria-label="Interaktives dreidimensionales Modell einer um Beta nach hinten gedrehten Ellipse mit rotem VNS-Segment, horizontaler Rollenlinie und Projektionsebene"
+            ><span class="eq-projection-3d-loading">3D-Modell wird geladen …</span></div>
+            <div class="eq-projection-3d-status" aria-live="polite">
+              <span class="eq-projection-3d-value" id="eq-projection-phi-value">A = r · cos(φ) = 0,643 r</span>
+              <span class="eq-projection-3d-value" id="eq-projection-beta-value">B = r / cos(β) = 1,155 r</span>
+            </div>
+          </div>
 
-            <article class="eq-projection-panel" aria-labelledby="eq-projection-step-two">
-              <div class="eq-projection-panel-head">
-                <h3 id="eq-projection-step-two">2 · Tiefendrehung β</h3>
-                <span class="eq-projection-value" id="eq-projection-beta-value">30° · Faktor 1,155</span>
-              </div>
-              <svg class="eq-projection-svg" id="eq-projection-right" role="img" aria-label="Darstellung der Rollenverstellung; die Ellipse dreht räumlich nach hinten um die vertikale Achse und erscheint deshalb in der Bildebene nur horizontal gestreckt. Die türkise Rollenlinie bleibt horizontal, die rote VNS-Segmentfläche bleibt links verankert und wird ebenfalls horizontal gestreckt"></svg>
-            </article>
+          <div class="eq-projection-viewbar">
+            <div class="eq-projection-view-buttons" aria-label="Kameraansicht">
+              <button class="eq-projection-view-button" data-view="perspective" type="button" aria-pressed="true">Perspektive</button>
+              <button class="eq-projection-view-button" data-view="front" type="button" aria-pressed="false">Vorderansicht</button>
+              <button class="eq-projection-view-button" data-view="top" type="button" aria-pressed="false">Draufsicht</button>
+            </div>
+            <span class="eq-projection-hint">Ziehen zum Drehen · Mausrad oder Pinch zum Zoomen</span>
+          </div>
+
+          <div class="eq-projection-legend" aria-label="Legende">
+            <span><i class="eq-projection-swatch" style="--swatch: var(--eq-warm)"></i>Ellipse im Raum</span>
+            <span><i class="eq-projection-swatch" style="--swatch: var(--eq-red)"></i>VNS-Segment</span>
+            <span><i class="eq-projection-swatch" style="--swatch: var(--eq-accent)"></i>Rollenlinie</span>
+            <span><i class="eq-projection-swatch" style="--swatch: var(--eq-line)"></i>Projektionsebene</span>
           </div>
 
           <div class="eq-projection-controls">
@@ -1370,226 +1368,4 @@ lang: de
   </div>
 </div>
 
-<script>
-  (() => {
-    const root = document.getElementById("eq-projection-explainer");
-    if (!root) return;
-
-    const left = document.getElementById("eq-projection-left");
-    const right = document.getElementById("eq-projection-right");
-    const phiInput = document.getElementById("eq-projection-phi");
-    const betaInput = document.getElementById("eq-projection-beta");
-    const playButton = document.getElementById("eq-projection-play");
-    const progress = document.getElementById("eq-projection-progress");
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let phi = Number(phiInput.value);
-    let beta = Number(betaInput.value);
-    let animationFrame = null;
-
-    const radians = degrees => degrees * Math.PI / 180;
-    const formatFactor = value => value.toFixed(3).replace(".", ",");
-    const toPath = points => points.map((point, index) =>
-      `${index === 0 ? "M" : "L"}${point[0].toFixed(2)},${point[1].toFixed(2)}`
-    ).join(" ") + " Z";
-    function ellipsePoints(cx, cy, rx, ry, rotation, horizontalScale = 1) {
-      const angle = radians(rotation);
-      const points = [];
-      for (let i = 0; i <= 100; i += 1) {
-        const t = i / 100 * Math.PI * 2;
-        const x = rx * Math.cos(t);
-        const y = ry * Math.sin(t);
-        points.push([
-          cx + (x * Math.cos(angle) - y * Math.sin(angle)) * horizontalScale,
-          cy + x * Math.sin(angle) + y * Math.cos(angle)
-        ]);
-      }
-      return points;
-    }
-
-    function ellipseSegmentPoints(cx, cy, rx, ry, rotation = 0, horizontalScale = 1) {
-      const left = 0.24;
-      const right = 0.62;
-      const top = ry * 0.58;
-      const angle = radians(rotation);
-      const transform = (x, y) => [
-        cx + (x * Math.cos(angle) - y * Math.sin(angle)) * horizontalScale,
-        cy + x * Math.sin(angle) + y * Math.cos(angle)
-      ];
-      const curve = [];
-      const start = Math.acos(right);
-      const end = Math.acos(left);
-
-      for (let i = 0; i <= 30; i += 1) {
-        const t = start + (end - start) * i / 30;
-        curve.push(transform(rx * Math.cos(t), ry * Math.sin(t)));
-      }
-
-      return [transform(rx * left, top), transform(rx * right, top), ...curve];
-    }
-
-    function marker(id) {
-      return `<defs><marker id="${id}" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto-start-reverse"><path d="M0,0 L7,3.5 L0,7 Z" fill="var(--eq-ink)"></path></marker></defs>`;
-    }
-
-    function drawFirstProjection() {
-      const width = Math.max(280, left.parentElement.clientWidth);
-      const height = 304;
-      const cx = width / 2 - 10;
-      const cy = 146;
-      const radius = Math.min(92, width * 0.27);
-      const projectedRadius = radius * Math.cos(radians(phi));
-      const ellipse = ellipsePoints(cx, cy, radius, projectedRadius, 0);
-      const vnsLeft = 0.24;
-      const vnsSegment = ellipseSegmentPoints(cx, cy, radius, projectedRadius);
-      const guideTop = cy - Math.max(radius, 42) - 14;
-      const guideBottom = cy + Math.max(radius, 42) + 14;
-
-      left.setAttribute("viewBox", `0 0 ${width} ${height}`);
-      left.setAttribute("height", height);
-      left.innerHTML = `${marker("eq-projection-arrow-left")}
-        <line class="eq-projection-axis" x1="${cx - radius - 28}" y1="${cy}" x2="${cx + radius + 28}" y2="${cy}"></line>
-        <line class="eq-projection-axis" x1="${cx}" y1="${guideTop}" x2="${cx}" y2="${guideBottom}"></line>
-        <circle class="eq-projection-reference" cx="${cx}" cy="${cy}" r="${radius}"></circle>
-        <path class="eq-projection-ellipse" d="${toPath(ellipse)}"></path>
-        <line class="eq-projection-measure" x1="${cx + 18}" y1="${cy - projectedRadius}" x2="${cx + 18}" y2="${cy + projectedRadius}" marker-start="url(#eq-projection-arrow-left)" marker-end="url(#eq-projection-arrow-left)"></line>
-        <path class="eq-projection-vns" d="${toPath(vnsSegment)}"></path>
-        <text class="eq-projection-vns-label" x="${cx + radius * vnsLeft}" y="${Math.min(266, cy + projectedRadius + 34)}">VNS-Segment</text>
-        <text class="formula" x="${cx - radius + 5}" y="${guideTop + 17}">vertikal × cos(φ)</text>
-        <text class="muted" x="${cx - radius + 5}" y="${guideTop + 34}">${formatFactor(Math.cos(radians(phi)))} · Ausgangshöhe</text>
-        <text class="muted" x="${cx - radius}" y="292">Kreis (Referenz)</text>
-        <text x="${cx + radius}" y="292" text-anchor="end">Ellipse</text>`;
-    }
-
-    function drawRollerProjection() {
-      const width = Math.max(280, right.parentElement.clientWidth);
-      const height = 304;
-      const cx = width / 2;
-      const cy = 146;
-      const radius = Math.min(82, width * 0.23);
-      const projectedRadius = radius * Math.cos(radians(phi));
-      const factor = 1 / Math.max(0.01, Math.cos(radians(beta)));
-      const before = ellipsePoints(cx, cy, radius, projectedRadius, 0, 1);
-      const after = ellipsePoints(cx, cy, radius, projectedRadius, 0, factor);
-      const vnsReference = ellipseSegmentPoints(cx, cy, radius, projectedRadius, 0, 1);
-      const vnsAnchorX = cx + radius * 0.24;
-      const vnsSegment = vnsReference.map(point => [
-        vnsAnchorX + (point[0] - vnsAnchorX) * factor,
-        point[1]
-      ]);
-      const vnsRight = Math.max(...vnsSegment.map(point => point[0]));
-      const vnsMeasureY = cy + projectedRadius * 0.58 - 10;
-      const xValues = after.map(point => point[0]);
-      const minX = Math.min(...xValues);
-      const maxX = Math.max(...xValues);
-      const rollerLength = radius * 1.4;
-      const insetCx = width - 62;
-      const insetCy = 49;
-      const insetLength = Math.min(34, width * 0.1);
-      const insetAngle = radians(beta);
-      const insetArcRadius = 19;
-
-      right.setAttribute("viewBox", `0 0 ${width} ${height}`);
-      right.setAttribute("height", height);
-      right.innerHTML = `${marker("eq-projection-arrow-right")}
-        <text class="muted" x="${insetCx - insetLength}" y="15">Draufsicht</text>
-        <line class="eq-projection-inset-axis" x1="${insetCx}" y1="${insetCy + 11}" x2="${insetCx}" y2="${insetCy - 39}"></line>
-        <text class="muted" x="${insetCx + 5}" y="${insetCy - 30}">Tiefe</text>
-        <line class="eq-projection-inset-reference" x1="${insetCx - insetLength}" y1="${insetCy}" x2="${insetCx + insetLength}" y2="${insetCy}"></line>
-        <line class="eq-projection-inset-active" x1="${insetCx - insetLength * Math.cos(insetAngle)}" y1="${insetCy + insetLength * Math.sin(insetAngle)}" x2="${insetCx + insetLength * Math.cos(insetAngle)}" y2="${insetCy - insetLength * Math.sin(insetAngle)}"></line>
-        <path class="eq-projection-inset-arc" d="M ${insetCx + insetArcRadius} ${insetCy} A ${insetArcRadius} ${insetArcRadius} 0 0 0 ${insetCx + insetArcRadius * Math.cos(insetAngle)} ${insetCy - insetArcRadius * Math.sin(insetAngle)}"></path>
-        <circle class="eq-projection-inset-pivot" cx="${insetCx}" cy="${insetCy}" r="3"></circle>
-        <text class="formula" x="${insetCx + 23}" y="${insetCy - 8}">β</text>
-        <text class="muted" x="12" y="18">Vorderansicht</text>
-        <line class="eq-projection-axis" x1="${cx - radius - 50}" y1="${cy}" x2="${cx + radius + 50}" y2="${cy}"></line>
-        <line class="eq-projection-reference" x1="${cx}" y1="${cy - radius - 38}" x2="${cx}" y2="${cy + radius + 38}"></line>
-        <path class="eq-projection-before" d="${toPath(before)}"></path>
-        <path class="eq-projection-after" d="${toPath(after)}"></path>
-        <path class="eq-projection-vns" d="${toPath(vnsSegment)}"></path>
-        <path class="eq-projection-vns-reference" d="${toPath(vnsReference)}"></path>
-        <line class="eq-projection-vns-measure" x1="${vnsAnchorX}" y1="${vnsMeasureY}" x2="${vnsRight}" y2="${vnsMeasureY}"></line>
-        <line class="eq-projection-vns-measure" x1="${vnsAnchorX}" y1="${vnsMeasureY - 4}" x2="${vnsAnchorX}" y2="${vnsMeasureY + 4}"></line>
-        <line class="eq-projection-vns-measure" x1="${vnsRight}" y1="${vnsMeasureY - 4}" x2="${vnsRight}" y2="${vnsMeasureY + 4}"></line>
-        <text class="eq-projection-vns-label" x="${(vnsAnchorX + vnsRight) / 2}" y="${vnsMeasureY - 6}" text-anchor="middle">× ${formatFactor(factor)}</text>
-        <line class="eq-projection-roller" x1="${cx - rollerLength}" y1="${cy}" x2="${cx + rollerLength}" y2="${cy}"></line>
-        <text class="formula" x="${cx - radius - 34}" y="${cy - radius - 12}">β = ${Math.round(beta)}° nach hinten</text>
-        <line class="eq-projection-measure" x1="${minX}" y1="${cy + radius + 49}" x2="${maxX}" y2="${cy + radius + 49}" marker-start="url(#eq-projection-arrow-right)" marker-end="url(#eq-projection-arrow-right)"></line>
-        <text class="formula" x="${cx}" y="${cy + radius + 40}" text-anchor="middle">horizontal × 1/cos(β) = ${formatFactor(factor)}</text>
-        <text class="muted" x="${cx}" y="292" text-anchor="middle">Vorderansicht: nur die Breite ändert sich</text>`;
-    }
-
-    function updateProjection() {
-      const cosPhi = Math.cos(radians(phi));
-      const betaFactor = 1 / Math.max(0.01, Math.cos(radians(beta)));
-      document.getElementById("eq-projection-phi-value").textContent = `φ = ${Math.round(phi)}° · cos(φ) = ${formatFactor(cosPhi)}`;
-      document.getElementById("eq-projection-beta-value").textContent = `${Math.round(beta)}° · Faktor ${formatFactor(betaFactor)}`;
-      document.getElementById("eq-projection-phi-output").textContent = `${Math.round(phi)}°`;
-      document.getElementById("eq-projection-beta-output").textContent = `${Math.round(beta)}°`;
-      drawFirstProjection();
-      drawRollerProjection();
-    }
-
-    phiInput.addEventListener("input", event => {
-      if (animationFrame) cancelAnimationFrame(animationFrame);
-      animationFrame = null;
-      playButton.disabled = false;
-      phi = Number(event.target.value);
-      updateProjection();
-    });
-
-    betaInput.addEventListener("input", event => {
-      if (animationFrame) cancelAnimationFrame(animationFrame);
-      animationFrame = null;
-      playButton.disabled = false;
-      beta = Number(event.target.value);
-      updateProjection();
-    });
-
-    playButton.addEventListener("click", () => {
-      if (animationFrame) cancelAnimationFrame(animationFrame);
-      const targetPhi = Number(phiInput.value);
-      const targetBeta = Number(betaInput.value);
-      const duration = prefersReducedMotion ? 1 : 4200;
-      const start = performance.now();
-      playButton.disabled = true;
-
-      const tick = now => {
-        const total = Math.min(1, (now - start) / duration);
-        if (total < 0.47) {
-          phi = targetPhi * (total / 0.47);
-          beta = 0;
-        } else if (total < 0.57) {
-          phi = targetPhi;
-          beta = 0;
-        } else {
-          phi = targetPhi;
-          beta = targetBeta * ((total - 0.57) / 0.43);
-        }
-        progress.style.width = `${total * 100}%`;
-        updateProjection();
-
-        if (total < 1) {
-          animationFrame = requestAnimationFrame(tick);
-        } else {
-          phi = targetPhi;
-          beta = targetBeta;
-          animationFrame = null;
-          playButton.disabled = false;
-          updateProjection();
-        }
-      };
-
-      animationFrame = requestAnimationFrame(tick);
-    });
-
-    let resizeFrame = null;
-    window.addEventListener("resize", () => {
-      if (resizeFrame) cancelAnimationFrame(resizeFrame);
-      resizeFrame = requestAnimationFrame(() => {
-        resizeFrame = null;
-        updateProjection();
-      });
-    });
-
-    updateProjection();
-  })();
-</script>
+<script type="module" src="projection-3d.js"></script>
