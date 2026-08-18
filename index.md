@@ -983,9 +983,9 @@ lang: de
             Firmware sind vollständig dokumentiert.
           </p>
           <div class="eq-actions">
-            <a class="eq-button" href="flasher/">Firmware installieren</a>
             <a class="eq-button secondary" href="build_instructions/buildinstruction_EQ_Plattform.pdf">Bauanleitung öffnen</a>
             <a class="eq-button secondary" href="#downloads">Dateien herunterladen</a>
+            <a class="eq-button" href="flasher/">Firmware installieren</a>
           </div>
           <div class="eq-facts" aria-label="Projektmerkmale">
             <span class="eq-fact">18 Seiten Anleitung</span>
@@ -1305,19 +1305,11 @@ lang: de
             </span>
             <span class="eq-resource-arrow">→</span>
           </a>
-          <a class="eq-resource" href="flasher/">
-            <span class="eq-resource-type">Chrome · Edge</span>
+          <a class="eq-resource" href="https://github.com/MoMa13570/eq-plattform/tree/main/hardware/mechanical">
+            <span class="eq-resource-type">STEP · STL · 3MF</span>
             <span>
-              <strong>Firmware Flasher</strong>
-              <small>HEX-Datei ohne Arduino IDE direkt per USB installieren.</small>
-            </span>
-            <span class="eq-resource-arrow">→</span>
-          </a>
-          <a class="eq-resource" href="https://github.com/MoMa13570/eq-plattform/releases/latest">
-            <span class="eq-resource-type">Release</span>
-            <span>
-              <strong>Aktuelle Firmware</strong>
-              <small>Geprüfte HEX-Datei für Arduino Uno und Nano.</small>
+              <strong>CAD-Dateien</strong>
+              <small>Mechanikvarianten, Kreissegmente und Elektronikgehäuse.</small>
             </span>
             <span class="eq-resource-arrow">→</span>
           </a>
@@ -1329,11 +1321,19 @@ lang: de
             </span>
             <span class="eq-resource-arrow">→</span>
           </a>
-          <a class="eq-resource" href="https://github.com/MoMa13570/eq-plattform/tree/main/hardware/mechanical">
-            <span class="eq-resource-type">STEP · STL · 3MF</span>
+          <a class="eq-resource" href="https://github.com/MoMa13570/eq-plattform/releases/latest">
+            <span class="eq-resource-type">Release</span>
             <span>
-              <strong>CAD-Dateien</strong>
-              <small>Mechanikvarianten, Kreissegmente und Elektronikgehäuse.</small>
+              <strong>Aktuelle Firmware</strong>
+              <small>Geprüfte HEX-Datei für Arduino Uno und Nano.</small>
+            </span>
+            <span class="eq-resource-arrow">→</span>
+          </a>
+          <a class="eq-resource" href="flasher/">
+            <span class="eq-resource-type">Chrome · Edge</span>
+            <span>
+              <strong>Firmware Flasher</strong>
+              <small>HEX-Datei ohne Arduino IDE direkt per USB installieren.</small>
             </span>
             <span class="eq-resource-arrow">→</span>
           </a>
