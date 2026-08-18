@@ -1118,7 +1118,7 @@ lang: de
               class="eq-projection-3d"
               id="eq-projection-3d"
               role="img"
-              aria-label="Interaktives dreidimensionales Modell einer um Beta nach hinten gedrehten Ellipse mit rotem VNS-Segment, horizontaler Rollenlinie und Projektionsebene"
+              aria-label="Interaktives dreidimensionales Modell einer um Beta nach hinten gedrehten Ellipse mit rotem VNS-Segment und Projektionsebene"
             ><span class="eq-projection-3d-loading">3D-Modell wird geladen …</span></div>
             <div class="eq-projection-3d-status" aria-live="polite">
               <span class="eq-projection-3d-value" id="eq-projection-phi-value">A = r · cos(φ) = 0,643 r</span>
@@ -1138,7 +1138,6 @@ lang: de
           <div class="eq-projection-legend" aria-label="Legende">
             <span><i class="eq-projection-swatch" style="--swatch: var(--eq-warm)"></i>Ellipse im Raum</span>
             <span><i class="eq-projection-swatch" style="--swatch: var(--eq-red)"></i>VNS-Segment</span>
-            <span><i class="eq-projection-swatch" style="--swatch: var(--eq-accent)"></i>Rollenlinie</span>
             <span><i class="eq-projection-swatch" style="--swatch: var(--eq-line)"></i>Projektionsebene</span>
           </div>
 

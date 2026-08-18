@@ -77,14 +77,6 @@ if (root) {
   planeEdges.position.copy(projectionPlane.position);
   scene.add(planeEdges);
 
-  const roller = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.032, 0.032, 3.15, 18),
-    new THREE.MeshStandardMaterial({ color: colors.accent, roughness: 0.5, metalness: 0.08 })
-  );
-  roller.rotation.z = Math.PI / 2;
-  roller.position.z = 0.42;
-  scene.add(roller);
-
   const verticalAxis = new THREE.Mesh(
     new THREE.CylinderGeometry(0.012, 0.012, 3.1, 10),
     new THREE.MeshBasicMaterial({ color: colors.muted, transparent: true, opacity: 0.58 })
