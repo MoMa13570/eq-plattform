@@ -680,8 +680,7 @@ lang: de
     stroke-linecap: round;
   }
 
-  .eq-projection-measure,
-  .eq-projection-angle {
+  .eq-projection-measure {
     fill: none;
     stroke: var(--eq-ink);
     stroke-width: 1.25;
@@ -1093,7 +1092,7 @@ lang: de
           <div class="eq-projection-top">
             <p>
               Die Animation zeigt zuerst die Projektion des Kreises zur Ellipse und
-              anschließend die Korrektur für die um 30° verstellten Rollen.
+              anschließend die Korrektur für die um 30° nach hinten verstellten Rollen.
             </p>
             <button class="eq-button eq-projection-play" id="eq-projection-play" type="button">
               Animation abspielen
@@ -1111,10 +1110,10 @@ lang: de
 
             <article class="eq-projection-panel" aria-labelledby="eq-projection-step-two">
               <div class="eq-projection-panel-head">
-                <h3 id="eq-projection-step-two">2 · Rollenwinkel β</h3>
+                <h3 id="eq-projection-step-two">2 · Tiefendrehung β</h3>
                 <span class="eq-projection-value" id="eq-projection-beta-value">30° · Faktor 1,155</span>
               </div>
-              <svg class="eq-projection-svg" id="eq-projection-right" role="img" aria-label="Darstellung der Rollenverstellung; die türkise Rollenlinie bleibt horizontal, die rote VNS-Segmentfläche bleibt links verankert und wird horizontal gestreckt, während die Ellipse um Beta gedreht und ebenfalls horizontal gestreckt wird"></svg>
+              <svg class="eq-projection-svg" id="eq-projection-right" role="img" aria-label="Darstellung der Rollenverstellung; die Ellipse dreht räumlich nach hinten um die vertikale Achse und erscheint deshalb in der Bildebene nur horizontal gestreckt. Die türkise Rollenlinie bleibt horizontal, die rote VNS-Segmentfläche bleibt links verankert und wird ebenfalls horizontal gestreckt"></svg>
             </article>
           </div>
 
@@ -1443,7 +1442,7 @@ lang: de
       const projectedRadius = radius * Math.cos(radians(phi));
       const factor = 1 / Math.max(0.01, Math.cos(radians(beta)));
       const before = ellipsePoints(cx, cy, radius, projectedRadius, 0, 1);
-      const after = ellipsePoints(cx, cy, radius, projectedRadius, -beta, factor);
+      const after = ellipsePoints(cx, cy, radius, projectedRadius, 0, factor);
       const vnsReference = ellipseSegmentPoints(cx, cy, radius, projectedRadius, 0, 1);
       const vnsAnchorX = cx + radius * 0.24;
       const vnsSegment = vnsReference.map(point => [
@@ -1456,7 +1455,6 @@ lang: de
       const minX = Math.min(...xValues);
       const maxX = Math.max(...xValues);
       const rollerLength = radius * 1.4;
-      const angle = radians(-beta);
 
       right.setAttribute("viewBox", `0 0 ${width} ${height}`);
       right.setAttribute("height", height);
@@ -1472,11 +1470,11 @@ lang: de
         <line class="eq-projection-vns-measure" x1="${vnsRight}" y1="${vnsMeasureY - 4}" x2="${vnsRight}" y2="${vnsMeasureY + 4}"></line>
         <text class="eq-projection-vns-label" x="${(vnsAnchorX + vnsRight) / 2}" y="${vnsMeasureY - 6}" text-anchor="middle">× ${formatFactor(factor)}</text>
         <line class="eq-projection-roller" x1="${cx - rollerLength}" y1="${cy}" x2="${cx + rollerLength}" y2="${cy}"></line>
-        <path class="eq-projection-angle" d="M ${cx + 43} ${cy} A 43 43 0 0 0 ${cx + 43 * Math.cos(angle)} ${cy + 43 * Math.sin(angle)}"></path>
-        <text class="formula" x="${cx + 50}" y="${cy - 17}">β = ${Math.round(beta)}°</text>
+        <text class="muted" x="${cx + 8}" y="${cy - radius - 20}">vertikale Drehachse</text>
+        <text class="formula" x="${cx + 8}" y="${cy - radius - 3}">β = ${Math.round(beta)}° nach hinten</text>
         <line class="eq-projection-measure" x1="${minX}" y1="${cy + radius + 49}" x2="${maxX}" y2="${cy + radius + 49}" marker-start="url(#eq-projection-arrow-right)" marker-end="url(#eq-projection-arrow-right)"></line>
         <text class="formula" x="${cx}" y="${cy + radius + 40}" text-anchor="middle">horizontal × 1/cos(β) = ${formatFactor(factor)}</text>
-        <text class="muted" x="${cx}" y="292" text-anchor="middle">Rolle fest · VNS verankert, aber gestreckt</text>`;
+        <text class="muted" x="${cx}" y="292" text-anchor="middle">keine Drehung in der Bildebene</text>`;
     }
 
     function updateProjection() {
