@@ -987,11 +987,6 @@ lang: de
             <a class="eq-button secondary" href="#downloads">Dateien herunterladen</a>
             <a class="eq-button" href="flasher/">Firmware installieren</a>
           </div>
-          <div class="eq-facts" aria-label="Projektmerkmale">
-            <span class="eq-fact">18 Seiten Anleitung</span>
-            <span class="eq-fact">Firmware für Uno &amp; Nano</span>
-            <span class="eq-fact">NEMA17 + TMC2209</span>
-          </div>
         </div>
         <figure class="eq-hero-media">
           <img src="images/EQ-Plattform.png" alt="Fertig aufgebaute EQ Plattform" />
