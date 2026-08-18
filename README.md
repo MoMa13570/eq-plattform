@@ -1,7 +1,8 @@
 # EQ Plattform
 
-Eine DIY-Nachführplattform für Dobson-Teleskope mit Arduino Uno oder Nano,
-NEMA17-Schrittmotor und TMC2209-Treiber.
+Eine DIY-Nachführplattform für Dobson-Teleskope mit Arduino Uno, Nano oder
+ESP32, NEMA17-Schrittmotor und TMC2209-Treiber. Die ESP32-Firmware bringt
+zusätzlich einen eigenen WLAN-Hotspot und eine responsive Websteuerung mit.
 
 ## Direkt starten
 
@@ -25,15 +26,16 @@ HEX-Datei wird lokal verarbeitet und nicht an einen Server übertragen.
 
 ## Firmware selbst kompilieren
 
-Das PlatformIO-Projekt unterstützt Arduino Uno und Nano:
+Das PlatformIO-Projekt unterstützt Arduino Uno, Nano und ESP32:
 
 ```text
 software/EQ-Plattform_TMC2209/
 ```
 
-Die wichtigsten Umgebungen in `platformio.ini` sind `uno` und `nano`. Für die
-meisten Anwender ist der fertige HEX-Download im aktuellen GitHub Release
-einfacher.
+Die wichtigsten Umgebungen in `platformio.ini` sind `uno`, `nano` und `esp32`.
+Details zur ESP32-Pinbelegung und Web-App stehen in der
+[Software-Dokumentation](software/README.md). Für Uno/Nano ist der fertige
+HEX-Download im aktuellen GitHub Release einfacher.
 
 ## Lizenz
 
