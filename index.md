@@ -674,6 +674,33 @@ lang: de
     font-weight: 700;
   }
 
+  .eq-projection-inset-axis,
+  .eq-projection-inset-reference,
+  .eq-projection-inset-arc {
+    fill: none;
+    stroke: var(--eq-line);
+    stroke-width: 1.25;
+  }
+
+  .eq-projection-inset-reference {
+    stroke: var(--eq-muted);
+    stroke-dasharray: 4 3;
+  }
+
+  .eq-projection-inset-active {
+    stroke: var(--eq-warm);
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+
+  .eq-projection-inset-arc {
+    stroke: var(--eq-ink);
+  }
+
+  .eq-projection-inset-pivot {
+    fill: var(--eq-ink);
+  }
+
   .eq-projection-roller {
     stroke: var(--eq-accent);
     stroke-width: 4;
@@ -1455,10 +1482,24 @@ lang: de
       const minX = Math.min(...xValues);
       const maxX = Math.max(...xValues);
       const rollerLength = radius * 1.4;
+      const insetCx = width - 62;
+      const insetCy = 49;
+      const insetLength = Math.min(34, width * 0.1);
+      const insetAngle = radians(beta);
+      const insetArcRadius = 19;
 
       right.setAttribute("viewBox", `0 0 ${width} ${height}`);
       right.setAttribute("height", height);
       right.innerHTML = `${marker("eq-projection-arrow-right")}
+        <text class="muted" x="${insetCx - insetLength}" y="15">Draufsicht</text>
+        <line class="eq-projection-inset-axis" x1="${insetCx}" y1="${insetCy + 11}" x2="${insetCx}" y2="${insetCy - 39}"></line>
+        <text class="muted" x="${insetCx + 5}" y="${insetCy - 30}">Tiefe</text>
+        <line class="eq-projection-inset-reference" x1="${insetCx - insetLength}" y1="${insetCy}" x2="${insetCx + insetLength}" y2="${insetCy}"></line>
+        <line class="eq-projection-inset-active" x1="${insetCx - insetLength * Math.cos(insetAngle)}" y1="${insetCy + insetLength * Math.sin(insetAngle)}" x2="${insetCx + insetLength * Math.cos(insetAngle)}" y2="${insetCy - insetLength * Math.sin(insetAngle)}"></line>
+        <path class="eq-projection-inset-arc" d="M ${insetCx + insetArcRadius} ${insetCy} A ${insetArcRadius} ${insetArcRadius} 0 0 0 ${insetCx + insetArcRadius * Math.cos(insetAngle)} ${insetCy - insetArcRadius * Math.sin(insetAngle)}"></path>
+        <circle class="eq-projection-inset-pivot" cx="${insetCx}" cy="${insetCy}" r="3"></circle>
+        <text class="formula" x="${insetCx + 23}" y="${insetCy - 8}">β</text>
+        <text class="muted" x="12" y="18">Vorderansicht</text>
         <line class="eq-projection-axis" x1="${cx - radius - 50}" y1="${cy}" x2="${cx + radius + 50}" y2="${cy}"></line>
         <line class="eq-projection-reference" x1="${cx}" y1="${cy - radius - 38}" x2="${cx}" y2="${cy + radius + 38}"></line>
         <path class="eq-projection-before" d="${toPath(before)}"></path>
@@ -1470,11 +1511,10 @@ lang: de
         <line class="eq-projection-vns-measure" x1="${vnsRight}" y1="${vnsMeasureY - 4}" x2="${vnsRight}" y2="${vnsMeasureY + 4}"></line>
         <text class="eq-projection-vns-label" x="${(vnsAnchorX + vnsRight) / 2}" y="${vnsMeasureY - 6}" text-anchor="middle">× ${formatFactor(factor)}</text>
         <line class="eq-projection-roller" x1="${cx - rollerLength}" y1="${cy}" x2="${cx + rollerLength}" y2="${cy}"></line>
-        <text class="muted" x="${cx + 8}" y="${cy - radius - 20}">vertikale Drehachse</text>
-        <text class="formula" x="${cx + 8}" y="${cy - radius - 3}">β = ${Math.round(beta)}° nach hinten</text>
+        <text class="formula" x="${cx - radius - 34}" y="${cy - radius - 12}">β = ${Math.round(beta)}° nach hinten</text>
         <line class="eq-projection-measure" x1="${minX}" y1="${cy + radius + 49}" x2="${maxX}" y2="${cy + radius + 49}" marker-start="url(#eq-projection-arrow-right)" marker-end="url(#eq-projection-arrow-right)"></line>
         <text class="formula" x="${cx}" y="${cy + radius + 40}" text-anchor="middle">horizontal × 1/cos(β) = ${formatFactor(factor)}</text>
-        <text class="muted" x="${cx}" y="292" text-anchor="middle">keine Drehung in der Bildebene</text>`;
+        <text class="muted" x="${cx}" y="292" text-anchor="middle">Vorderansicht: nur die Breite ändert sich</text>`;
     }
 
     function updateProjection() {
