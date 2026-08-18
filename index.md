@@ -652,9 +652,21 @@ lang: de
   }
 
   .eq-projection-vns {
-    fill: var(--eq-red);
+    fill: rgba(200, 50, 43, 0.78);
     stroke: var(--eq-red);
     stroke-width: 1.5;
+  }
+
+  .eq-projection-vns-reference {
+    fill: none;
+    stroke: var(--eq-red);
+    stroke-width: 2;
+    stroke-dasharray: 4 3;
+  }
+
+  .eq-projection-vns-measure {
+    stroke: var(--eq-red);
+    stroke-width: 1.25;
   }
 
   .eq-projection-vns-label {
@@ -1102,7 +1114,7 @@ lang: de
                 <h3 id="eq-projection-step-two">2 · Rollenwinkel β</h3>
                 <span class="eq-projection-value" id="eq-projection-beta-value">30° · Faktor 1,155</span>
               </div>
-              <svg class="eq-projection-svg" id="eq-projection-right" role="img" aria-label="Darstellung der Rollenverstellung; die türkise Rollenlinie und die rote VNS-Segmentfläche bleiben fest, nur die Ellipse wird um Beta gedreht und horizontal mit dem Kehrwert von Kosinus Beta gestreckt"></svg>
+              <svg class="eq-projection-svg" id="eq-projection-right" role="img" aria-label="Darstellung der Rollenverstellung; die türkise Rollenlinie bleibt horizontal, die rote VNS-Segmentfläche bleibt links verankert und wird horizontal gestreckt, während die Ellipse um Beta gedreht und ebenfalls horizontal gestreckt wird"></svg>
             </article>
           </div>
 
@@ -1432,7 +1444,14 @@ lang: de
       const factor = 1 / Math.max(0.01, Math.cos(radians(beta)));
       const before = ellipsePoints(cx, cy, radius, projectedRadius, 0, 1);
       const after = ellipsePoints(cx, cy, radius, projectedRadius, -beta, factor);
-      const vnsSegment = ellipseSegmentPoints(cx, cy, radius, projectedRadius, 0, 1);
+      const vnsReference = ellipseSegmentPoints(cx, cy, radius, projectedRadius, 0, 1);
+      const vnsAnchorX = cx + radius * 0.24;
+      const vnsSegment = vnsReference.map(point => [
+        vnsAnchorX + (point[0] - vnsAnchorX) * factor,
+        point[1]
+      ]);
+      const vnsRight = Math.max(...vnsSegment.map(point => point[0]));
+      const vnsMeasureY = cy + projectedRadius * 0.58 - 10;
       const xValues = after.map(point => point[0]);
       const minX = Math.min(...xValues);
       const maxX = Math.max(...xValues);
@@ -1447,12 +1466,17 @@ lang: de
         <path class="eq-projection-before" d="${toPath(before)}"></path>
         <path class="eq-projection-after" d="${toPath(after)}"></path>
         <path class="eq-projection-vns" d="${toPath(vnsSegment)}"></path>
+        <path class="eq-projection-vns-reference" d="${toPath(vnsReference)}"></path>
+        <line class="eq-projection-vns-measure" x1="${vnsAnchorX}" y1="${vnsMeasureY}" x2="${vnsRight}" y2="${vnsMeasureY}"></line>
+        <line class="eq-projection-vns-measure" x1="${vnsAnchorX}" y1="${vnsMeasureY - 4}" x2="${vnsAnchorX}" y2="${vnsMeasureY + 4}"></line>
+        <line class="eq-projection-vns-measure" x1="${vnsRight}" y1="${vnsMeasureY - 4}" x2="${vnsRight}" y2="${vnsMeasureY + 4}"></line>
+        <text class="eq-projection-vns-label" x="${(vnsAnchorX + vnsRight) / 2}" y="${vnsMeasureY - 6}" text-anchor="middle">× ${formatFactor(factor)}</text>
         <line class="eq-projection-roller" x1="${cx - rollerLength}" y1="${cy}" x2="${cx + rollerLength}" y2="${cy}"></line>
         <path class="eq-projection-angle" d="M ${cx + 43} ${cy} A 43 43 0 0 0 ${cx + 43 * Math.cos(angle)} ${cy + 43 * Math.sin(angle)}"></path>
         <text class="formula" x="${cx + 50}" y="${cy - 17}">β = ${Math.round(beta)}°</text>
         <line class="eq-projection-measure" x1="${minX}" y1="${cy + radius + 49}" x2="${maxX}" y2="${cy + radius + 49}" marker-start="url(#eq-projection-arrow-right)" marker-end="url(#eq-projection-arrow-right)"></line>
         <text class="formula" x="${cx}" y="${cy + radius + 40}" text-anchor="middle">horizontal × 1/cos(β) = ${formatFactor(factor)}</text>
-        <text class="muted" x="${cx}" y="292" text-anchor="middle">Rolle + VNS fest · Ellipse dreht und streckt</text>`;
+        <text class="muted" x="${cx}" y="292" text-anchor="middle">Rolle fest · VNS verankert, aber gestreckt</text>`;
     }
 
     function updateProjection() {
