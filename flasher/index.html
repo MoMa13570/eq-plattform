@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Firmware für die EQ-Plattform direkt mit Chrome auf Arduino Uno und Nano installieren."
+      content="Firmware für die EQ-Plattform direkt mit Chrome auf Arduino Uno, Nano und ESP32 installieren."
     />
     <meta property="og:title" content="EQ Firmware Flasher" />
     <meta
       property="og:description"
-      content="Firmware direkt im Browser auf Arduino Uno und Nano installieren."
+      content="Firmware direkt im Browser auf Arduino Uno, Nano und ESP32 installieren."
     />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
@@ -67,6 +67,10 @@
                 <strong>Nano Legacy</strong>
                 <span>Alter Bootloader · 57600 Baud</span>
               </button>
+              <button class="board-card" data-board="esp32" type="button">
+                <strong>ESP32 DevKit</strong>
+                <span>WLAN + Web-App · Factory BIN</span>
+              </button>
             </div>
           </div>
 
@@ -76,7 +80,7 @@
               Firmware auswählen
             </div>
             <label class="dropzone" id="dropzone">
-              <span class="file-icon">HEX</span>
+              <span class="file-icon" id="file-icon">HEX</span>
               <span>
                 <strong id="file-name">.hex-Datei hier ablegen</strong>
                 <span id="file-detail">oder klicken, um eine Datei auszuwählen</span>
@@ -85,13 +89,16 @@
                 id="firmware-input"
                 class="hidden-input"
                 type="file"
-                accept=".hex,text/plain"
+                accept=".hex,.bin,text/plain,application/octet-stream"
               />
             </label>
             <p class="firmware-download">
-              Noch keine HEX-Datei?
-              <a href="https://github.com/MoMa13570/eq-plattform/releases/latest">
-                Aktuelle Firmware herunterladen
+              <button class="text-button" id="bundled-firmware" type="button">
+                Mitgelieferte Firmware verwenden
+              </button>
+              <span>oder</span>
+              <a id="release-download" href="../release/EQ-Plattform-UNO-NANO.hex" download>
+                Firmware herunterladen
               </a>
             </p>
           </div>
@@ -99,7 +106,7 @@
           <div class="field">
             <div class="field-label">
               <span class="step-number">03</span>
-              Arduino verbinden
+              Board verbinden
             </div>
             <div class="connect-row">
               <button class="button" id="connect-button" type="button">
@@ -152,7 +159,8 @@
             <span class="warning-mark">△</span>
             <span>
               Während der Installation weder USB-Kabel abziehen noch die Seite
-              schließen. Anschlüsse RX/TX am Arduino sollten frei bleiben.
+              schließen. Beim ESP32 kann es nötig sein, beim Verbinden kurz die
+              BOOT-Taste gedrückt zu halten.
             </span>
           </div>
         </aside>

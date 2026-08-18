@@ -9,6 +9,7 @@ zusätzlich einen eigenen WLAN-Hotspot und eine responsive Websteuerung mit.
 - [Projekt-Website und Bauübersicht](https://moma13570.github.io/eq-plattform/)
 - [Firmware im Browser installieren](https://moma13570.github.io/eq-plattform/flasher/)
 - [Aktuelle Firmware herunterladen](https://github.com/MoMa13570/eq-plattform/releases/latest)
+- [Fertige Firmware im Repository](release/)
 - [Bauanleitung als PDF](build_instructions/buildinstruction_EQ_Plattform.pdf)
 - [Stückliste als CSV](part%20list/Teileliste_DM%20EQ%20Plattform.csv)
 

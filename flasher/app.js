@@ -5,6 +5,25 @@ import {
   parseIntelHex,
   requestArduinoPort,
 } from "./firmware.js";
+import { flashEsp32Firmware, parseEsp32FactoryBin } from "./esp32.js";
+
+const BOARDS = [
+  ...BOARD_PROFILES.map((board) => ({
+    ...board,
+    family: "avr",
+    extension: ".hex",
+    releaseFile: "EQ-Plattform-UNO-NANO.hex",
+  })),
+  {
+    id: "esp32",
+    name: "ESP32 DevKit V1",
+    detail: "WLAN + Web-App · Factory BIN",
+    family: "esp32",
+    extension: ".bin",
+    maxFirmwareBytes: 4 * 1024 * 1024,
+    releaseFile: "EQ-Plattform-ESP32.factory.bin",
+  },
+];
 
 const elements = {
   browserDot: document.querySelector("#browser-dot"),
@@ -14,7 +33,10 @@ const elements = {
   fileInput: document.querySelector("#firmware-input"),
   fileName: document.querySelector("#file-name"),
   fileDetail: document.querySelector("#file-detail"),
+  fileIcon: document.querySelector("#file-icon"),
   dropzone: document.querySelector("#dropzone"),
+  bundledFirmware: document.querySelector("#bundled-firmware"),
+  releaseDownload: document.querySelector("#release-download"),
   connectButton: document.querySelector("#connect-button"),
   connectState: document.querySelector("#connect-state"),
   flashButton: document.querySelector("#flash-button"),
@@ -28,7 +50,7 @@ const elements = {
 };
 
 const state = {
-  board: BOARD_PROFILES[0],
+  board: BOARDS[0],
   firmware: null,
   port: null,
   working: false,
@@ -65,8 +87,8 @@ function setStatus(phase) {
   const statuses = {
     idle: ["·", "Warte auf Auswahl", "Drei kurze Schritte"],
     ready: ["→", "Bereit zum Installieren", "Alle Angaben vollständig"],
-    working: ["↧", "Firmware wird installiert", "Arduino nicht trennen"],
-    success: ["✓", "Installation abgeschlossen", "Arduino ist einsatzbereit"],
+    working: ["↧", "Firmware wird installiert", "Board nicht trennen"],
+    success: ["✓", "Installation abgeschlossen", "Board ist einsatzbereit"],
     error: ["!", "Installation fehlgeschlagen", "Details im Protokoll"],
   };
   const [symbol, title, detail] = statuses[phase];
@@ -88,6 +110,7 @@ function refreshState() {
   );
   elements.flashButton.disabled = !ready;
   elements.connectButton.disabled = !webSerialSupported || state.working;
+  elements.bundledFirmware.disabled = state.working;
   for (const button of elements.boardGrid.querySelectorAll("button")) {
     button.disabled = state.working;
   }
@@ -96,18 +119,37 @@ function refreshState() {
   }
 }
 
+function updateFirmwarePrompt() {
+  elements.fileIcon.textContent = state.board.family === "esp32" ? "BIN" : "HEX";
+  elements.fileInput.accept =
+    state.board.family === "esp32"
+      ? ".bin,application/octet-stream"
+      : ".hex,text/plain";
+  elements.releaseDownload.href = `../release/${state.board.releaseFile}`;
+  elements.releaseDownload.download = state.board.releaseFile;
+  if (!state.firmware) {
+    elements.fileName.textContent = `${state.board.extension}-Datei hier ablegen`;
+    elements.fileDetail.textContent = "oder die mitgelieferte Firmware verwenden";
+  }
+}
+
 async function selectFirmware(file) {
   if (!file) return;
-  if (!file.name.toLowerCase().endsWith(".hex")) {
+  if (!file.name.toLowerCase().endsWith(state.board.extension)) {
     state.firmware = null;
+    setProgress(0);
+    updateFirmwarePrompt();
     setStatus("error");
-    log("FEHLER: Bitte eine .hex-Datei auswählen.");
+    log(`FEHLER: Für ${state.board.name} bitte eine ${state.board.extension}-Datei auswählen.`);
     refreshState();
     return;
   }
 
   try {
-    const firmware = parseIntelHex(await file.text());
+    const firmware =
+      state.board.family === "esp32"
+        ? parseEsp32FactoryBin(await file.arrayBuffer())
+        : { ...parseIntelHex(await file.text()), kind: "avr" };
     if (firmware.highestAddress > state.board.maxFirmwareBytes) {
       throw new Error(
         `Firmware ist für ${state.board.name} zu groß (${firmware.highestAddress} Byte).`,
@@ -122,8 +164,7 @@ async function selectFirmware(file) {
     log(`${file.name} geprüft: ${firmware.usedBytes.toLocaleString("de-DE")} Datenbytes.`);
   } catch (error) {
     state.firmware = null;
-    elements.fileName.textContent = ".hex-Datei hier ablegen";
-    elements.fileDetail.textContent = "oder klicken, um eine Datei auszuwählen";
+    updateFirmwarePrompt();
     setStatus("error");
     log(`FEHLER: ${error instanceof Error ? error.message : "Firmware ungültig."}`);
   }
@@ -133,7 +174,7 @@ async function selectFirmware(file) {
 elements.boardGrid.addEventListener("click", (event) => {
   const button = event.target.closest("[data-board]");
   if (!button || state.working) return;
-  const profile = BOARD_PROFILES.find(
+  const profile = BOARDS.find(
     (candidate) => candidate.id === button.dataset.board,
   );
   if (!profile) return;
@@ -145,13 +186,31 @@ elements.boardGrid.addEventListener("click", (event) => {
   log(`Board ausgewählt: ${profile.name}.`);
   if (
     state.firmware &&
-    state.firmware.highestAddress > profile.maxFirmwareBytes
+    (state.firmware.kind !== profile.family ||
+      state.firmware.highestAddress > profile.maxFirmwareBytes)
   ) {
     state.firmware = null;
-    setStatus("error");
-    log("WARNUNG: Die Firmware ist für dieses Board zu groß.");
+    setProgress(0);
+    log("Firmwareauswahl wurde an den neuen Boardtyp angepasst.");
   }
+  updateFirmwarePrompt();
   refreshState();
+});
+
+elements.bundledFirmware.addEventListener("click", async () => {
+  try {
+    elements.bundledFirmware.disabled = true;
+    log(`Lade ${state.board.releaseFile} …`);
+    const response = await fetch(`../release/${state.board.releaseFile}`);
+    if (!response.ok) throw new Error(`Download fehlgeschlagen (${response.status}).`);
+    const file = new File([await response.blob()], state.board.releaseFile);
+    await selectFirmware(file);
+  } catch (error) {
+    setStatus("error");
+    log(`FEHLER: ${error instanceof Error ? error.message : "Firmware konnte nicht geladen werden."}`);
+  } finally {
+    elements.bundledFirmware.disabled = false;
+  }
 });
 
 elements.fileInput.addEventListener("change", () => {
@@ -207,13 +266,22 @@ elements.flashButton.addEventListener("click", async () => {
   log(`Starte Installation für ${state.board.name}.`);
 
   try {
-    await flashFirmware({
-      port: state.port,
-      board: state.board,
-      firmware: state.firmware,
-      onLog: log,
-      onProgress: setProgress,
-    });
+    if (state.board.family === "esp32") {
+      await flashEsp32Firmware({
+        port: state.port,
+        firmware: state.firmware,
+        onLog: log,
+        onProgress: setProgress,
+      });
+    } else {
+      await flashFirmware({
+        port: state.port,
+        board: state.board,
+        firmware: state.firmware,
+        onLog: log,
+        onProgress: setProgress,
+      });
+    }
     setStatus("success");
     log("FERTIG: Firmware erfolgreich installiert.");
   } catch (error) {
@@ -233,4 +301,5 @@ elements.flashButton.addEventListener("click", async () => {
 
 log("Web-Flasher bereit.");
 log("Wähle Board, Firmware und USB-Gerät.");
+updateFirmwarePrompt();
 refreshState();

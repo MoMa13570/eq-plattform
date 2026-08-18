@@ -195,7 +195,7 @@ button {
 
 .board-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
 }
 
@@ -295,6 +295,20 @@ button {
 .firmware-download a {
   color: var(--aqua);
   font-weight: 700;
+}
+
+.text-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--aqua);
+  cursor: pointer;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.firmware-download span {
+  margin: 0 0.35rem;
 }
 
 .connect-row {

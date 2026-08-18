@@ -10,6 +10,10 @@
    in Chrome oder Edge öffnen.
 3. Board und HEX-Datei auswählen, Arduino verbinden und installieren.
 
+Für den ESP32 im Flasher `ESP32 DevKit` wählen und die mitgelieferte
+`EQ-Plattform-ESP32.factory.bin` verwenden. Der Flasher kann sie direkt laden;
+ein vorheriger Download ist nicht nötig.
+
 Die veröffentlichte Firmware ist für ATmega328P-Boards ausgelegt. Dasselbe
 Firmware-Abbild funktioniert auf Arduino Uno und Nano; im Flasher wird das
 Board ausgewählt, damit das passende Bootloader-Protokoll verwendet wird.
@@ -61,6 +65,10 @@ cd software/EQ-Plattform_TMC2209
 pio run -e esp32
 pio run -e esp32 -t upload
 ```
+
+Fertige Images für den Web-Flasher liegen unter [`release/`](../release/).
+Für den ESP32 muss dort die Datei mit der Endung `.factory.bin` verwendet
+werden; die normale PlatformIO-Datei `firmware.bin` enthält nur die Anwendung.
 
 ## Quellcode
 
