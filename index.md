@@ -248,7 +248,7 @@ lang: de
     grid-template-columns: minmax(220px, 0.3fr) minmax(0, 0.7fr);
     gap: clamp(1.5rem, 5vw, 4rem);
     align-items: start;
-    margin-bottom: clamp(4rem, 8vw, 7rem);
+    margin-bottom: 0;
     padding: clamp(1.5rem, 4vw, 2.5rem);
     border: 1px solid var(--eq-line);
     border-radius: var(--eq-radius);
@@ -270,6 +270,92 @@ lang: de
     color: var(--eq-muted);
     font-size: 1.04rem;
     line-height: 1.75;
+  }
+
+  .eq-video {
+    display: grid;
+    grid-template-columns: minmax(240px, 0.38fr) minmax(0, 0.62fr);
+    gap: clamp(2rem, 6vw, 5rem);
+    align-items: center;
+  }
+
+  .eq-video-copy h2 {
+    margin-bottom: 1.1rem;
+    color: var(--eq-night);
+    font-size: clamp(2.1rem, 5vw, 3.8rem);
+    font-weight: 720;
+    letter-spacing: -0.055em;
+    line-height: 1;
+  }
+
+  .eq-video-copy > p:last-child {
+    margin-bottom: 0;
+    color: var(--eq-muted);
+    font-size: 1.05rem;
+  }
+
+  .eq-video-placeholder {
+    position: relative;
+    display: grid;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--eq-radius);
+    background:
+      radial-gradient(circle at 50% 35%, rgba(8, 126, 132, 0.42), transparent 46%),
+      var(--eq-night);
+    box-shadow: var(--eq-shadow);
+    color: #ffffff;
+  }
+
+  .eq-video-placeholder::before {
+    position: absolute;
+    inset: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: calc(var(--eq-radius) - 0.4rem);
+    content: "";
+  }
+
+  .eq-video-placeholder-content {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    justify-items: center;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .eq-video-play-icon {
+    position: relative;
+    width: 4rem;
+    height: 4rem;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px);
+  }
+
+  .eq-video-play-icon::after {
+    position: absolute;
+    top: 50%;
+    left: 53%;
+    border-top: 0.55rem solid transparent;
+    border-bottom: 0.55rem solid transparent;
+    border-left: 0.85rem solid #ffffff;
+    content: "";
+    transform: translate(-50%, -50%);
+  }
+
+  .eq-video-placeholder strong {
+    color: #ffffff;
+    font-size: 1.1rem;
+  }
+
+  .eq-video-placeholder small {
+    margin-top: 0.25rem;
+    color: #b7c8c8;
   }
 
   .eq-section {
@@ -832,6 +918,7 @@ lang: de
     .eq-split,
     .eq-split.reverse,
     .eq-intro,
+    .eq-video,
     .eq-section-heading,
     .eq-dark-grid {
       grid-template-columns: 1fr;
@@ -964,6 +1051,7 @@ lang: de
         <span>EQ Plattform</span>
       </a>
       <div class="eq-nav-links">
+        <a href="#video">Video</a>
         <a href="#prinzip">Prinzip</a>
         <a href="#projektion">Projektion</a>
         <a href="#aufbau">Aufbau</a>
@@ -1006,6 +1094,29 @@ lang: de
           erhältlichen Plattformen. Im Folgenden werden die nötigen Teilelisten und
           Bauschritte im Einzelnen erklärt.
         </p>
+      </section>
+
+      <section class="eq-section eq-video" id="video" aria-labelledby="video-title">
+        <div class="eq-video-copy">
+          <p class="eq-kicker">Projektvideo</p>
+          <h2 id="video-title">Die EQ Plattform in Aktion</h2>
+          <p>
+            Ein ausführliches YouTube-Video mit Projektüberblick, Aufbau und
+            Praxiseinsatz ist in Vorbereitung. Sobald es veröffentlicht ist,
+            kannst du es direkt hier ansehen.
+          </p>
+        </div>
+        <div
+          class="eq-video-placeholder"
+          role="img"
+          aria-label="Platzhalter für das kommende YouTube-Video zur EQ Plattform"
+        >
+          <div class="eq-video-placeholder-content">
+            <span class="eq-video-play-icon" aria-hidden="true"></span>
+            <strong>Video erscheint in Kürze</strong>
+            <small>Projektüberblick · Aufbau · Praxiseinsatz</small>
+          </div>
+        </div>
       </section>
 
       <section class="eq-section soft" id="aufbau">
