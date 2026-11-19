@@ -40,8 +40,9 @@ jobs:
             0x8000 .pio/build/esp32/partitions.bin \
             0xe000 "$PLATFORMIO_CORE_DIR/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin" \
             0x10000 .pio/build/esp32/firmware.bin
+          cp .pio/build/esp32/firmware.bin ../../dist/EQ-Plattform-ESP32.ota.bin
           cd ../../dist
-          sha256sum EQ-Plattform-UNO-NANO.hex EQ-Plattform-ESP32.factory.bin > SHA256SUMS.txt
+          sha256sum EQ-Plattform-UNO-NANO.hex EQ-Plattform-ESP32.factory.bin EQ-Plattform-ESP32.ota.bin > SHA256SUMS.txt
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4

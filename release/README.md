@@ -8,8 +8,9 @@ werden. Das ESP32-Factory-Image enthält Bootloader, Partitionstabelle und
 Anwendung und wird ab Flash-Adresse `0x0` installiert.
 
 Bei einem Git-Tag wie `v1.0.0` baut der Workflow `firmware-release.yml` beide
-Dateien erneut und hängt sie zusammen mit `SHA256SUMS.txt` an den GitHub
-Release. Er kann außerdem manuell als Workflow gestartet werden.
+Dateien erneut und hängt sie zusammen mit `EQ-Plattform-ESP32.ota.bin` und
+`SHA256SUMS.txt` an den GitHub Release. Die OTA-Datei ist für den Upload
+in der Web-App des ESP32-Hotspots vorgesehen. Er kann außerdem manuell als Workflow gestartet werden.
 
 ## SHA-256
 

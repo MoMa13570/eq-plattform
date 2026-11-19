@@ -37,6 +37,37 @@ Die Web-App zeigt den Live-Status und bietet:
 
 Alle Einstellungen werden im Flash des ESP32 gespeichert.
 
+### Heim-WLAN einrichten
+
+1. Mit dem Hotspot `EQ-Plattform` verbinden und `http://192.168.4.1` im
+   Browser öffnen.
+2. Unter **Heim-WLAN** auf **Nach WLAN suchen** klicken, das
+   2,4-GHz-Netz auswählen und bei Bedarf das WLAN-Passwort eingeben.
+3. **Verbinden** wählen. Die Web-App zeigt die Heimnetz-IP an. Sie steht
+   auch in der Zeile unter der Hotspot-IP auf dem OLED.
+
+Nach erfolgreicher Verbindung speichert der ESP32 das WLAN-Profil und
+verbindet sich beim nächsten Start automatisch. Der Hotspot bleibt auch ohne
+Heimnetz verfügbar. Ein fehlgeschlagener Verbindungsversuch mit neuen
+Zugangsdaten lässt das bisher gespeicherte Profil bestehen.
+
+### Firmware per WLAN aktualisieren (OTA)
+
+1. Eine Firmware mit OTA-Unterstützung einmal per USB installieren.
+2. Mit dem Hotspot `EQ-Plattform` verbinden und `http://192.168.4.1` im
+   Browser öffnen.
+3. Nachführung oder Homing stoppen und unter **Firmware aktualisieren** die
+   Datei `EQ-Plattform-ESP32.ota.bin` aus dem GitHub Release auswählen.
+   Bei einem lokalen Build mit `pio run -e esp32` liegt die passende Datei
+   unter `.pio/build/esp32/firmware.bin`.
+4. **Update installieren** wählen und den ESP32 eingeschaltet lassen. Nach
+   erfolgreichem Update startet er neu. Danach bei Bedarf erneut mit dem
+   Hotspot verbinden.
+
+Die `.factory.bin` ist für den USB-Flasher vorgesehen. Beim OTA-Update
+bleiben die gespeicherten Einstellungen erhalten. Geräte im ESP32-Hotspot
+können die Update-Funktion verwenden.
+
 ### Pinbelegung ESP32 DevKit V1
 
 | Funktion | GPIO |
