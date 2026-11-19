@@ -100,6 +100,11 @@ static float baseUsps = 0.0f;
 static float targetUsps = 0.0f;
 static float smoothedTrim = 1.0f;
 static bool potOk = true;
+static bool webTrimActive = false;
+static float webTrimPct = 100.0f;
+static float trimTarget = 1.0f;
+static float filteredPotRaw = -1.0f;
+static float potRawAtWebTrim = -1.0f;
 static String lastEvent = "System bereit";
 
 static constexpr uint32_t HOME_BACKOFF_USTEPS =
@@ -220,7 +225,9 @@ static void saveSettings() {
 static float readTrim() {
   if (!config.potEnabled) {
     potOk = true;
-    return 1.0f;
+    filteredPotRaw = -1.0f;
+    potRawAtWebTrim = -1.0f;
+    return webTrimActive ? webTrimPct / 100.0f : 1.0f;
   }
 
   uint32_t sum = 0;
@@ -234,13 +241,24 @@ static float readTrim() {
   }
   const float raw = sum / 12.0f;
   potOk = (maximum - minimum) < 260 && raw > 8.0f && raw < 4087.0f;
+  if (potOk) {
+    if (filteredPotRaw < 0.0f) filteredPotRaw = raw;
+    else filteredPotRaw += 0.12f * (raw - filteredPotRaw);
+
+    if (webTrimActive) {
+      if (potRawAtWebTrim < 0.0f) potRawAtWebTrim = filteredPotRaw;
+      // Require a real turn (about 1.6% of ADC travel) to take over from the web.
+      if (fabsf(filteredPotRaw - potRawAtWebTrim) >= 64.0f) webTrimActive = false;
+    }
+  }
+  if (webTrimActive) return webTrimPct / 100.0f;
   if (!potOk) return 1.0f;
 
-  const float normalized = raw / 4095.0f;
+  const float normalized = filteredPotRaw / 4095.0f;
   const float minFactor = config.trimMinPct / 100.0f;
   const float maxFactor = config.trimMaxPct / 100.0f;
   float result = maxFactor + (minFactor - maxFactor) * normalized;
-  if (fabsf(raw - 2048.0f) < 35.0f) result = 1.0f;
+  if (fabsf(filteredPotRaw - 2048.0f) < 35.0f) result = 1.0f;
   return result;
 }
 
@@ -260,20 +278,17 @@ static void setTimerSpeed(float usps) {
 static void applyDriverProfile() {
   static uint8_t previous = 255;
   uint8_t profile = 0;
-  if (mode == MODE_TRACKING) profile = 1;
+  if (mode == MODE_TRACKING || mode == MODE_JOG) profile = 1;
   if (mode == MODE_HOMING) profile = homePhase == HOME_SLOW ? 3 : 2;
   if (profile == previous) return;
   previous = profile;
 
   if (profile == 1) {
     driver.rms_current(config.currentTrackingMa);
-    driver.en_spreadCycle(false);
   } else if (profile == 2) {
     driver.rms_current(config.currentHomingFastMa);
-    driver.en_spreadCycle(true);
   } else if (profile == 3) {
     driver.rms_current(config.currentHomingSlowMa);
-    driver.en_spreadCycle(true);
   }
 }
 
@@ -356,6 +371,7 @@ static const char WEB_APP[] PROGMEM = R"HTML(
 <!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>EQ Plattform</title><style>
 :root{--ink:#edf7f5;--muted:#8ea7a3;--panel:#102321;--line:#23403c;--mint:#56e0b1;--blue:#77aaff;--danger:#ff7979;--bg:#07110f}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,#173733 0,transparent 34%),var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,sans-serif}.wrap{max-width:980px;margin:auto;padding:24px 18px 50px}header{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}.brand{display:flex;gap:12px;align-items:center}.logo{display:grid;place-items:center;width:46px;height:46px;border:1px solid #47736b;border-radius:14px;background:#132a27;font-size:23px}.eyebrow{color:var(--mint);font-size:11px;letter-spacing:.16em;text-transform:uppercase}.brand h1{font-size:20px;margin:2px 0}.online{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:13px}.dot{width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 12px var(--mint)}.grid{display:grid;grid-template-columns:1.35fr .65fr;gap:16px}.card{background:linear-gradient(145deg,#112623ee,#0c1d1bee);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 16px 50px #0004}.hero{grid-row:span 2}.label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.1em}.mode{font-size:34px;font-weight:650;margin:7px 0 20px}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.metric{padding:13px;background:#081816;border:1px solid #1d3834;border-radius:14px}.metric b{display:block;font-size:20px;margin-top:5px}.controls{display:flex;gap:10px;margin-top:18px}.btn{border:0;border-radius:12px;padding:12px 15px;background:#203b37;color:var(--ink);font-weight:650;cursor:pointer}.btn.primary{background:var(--mint);color:#082019;flex:1}.btn.danger{color:#ffc1c1}.btn:active{transform:translateY(1px)}.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:5px;background:#081816;border-radius:13px;margin-top:10px}.seg button{border:0;border-radius:9px;background:transparent;color:var(--muted);padding:10px 4px;cursor:pointer}.seg button.active{background:#24453f;color:white}.stoprow{display:flex;gap:9px;margin-top:12px}.stop{flex:1;padding:10px;border-radius:12px;background:#081816;color:var(--muted)}.stop.on{color:#ffaeae;border:1px solid #753b3b}.event{color:var(--muted);margin-top:14px;font-size:13px}.settings{grid-column:1/-1}.settings-head{display:flex;justify-content:space-between;align-items:center}.settings h2{font-size:18px;margin:0}.form{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}.group{padding:15px;border:1px solid var(--line);border-radius:15px}.group h3{font-size:14px;margin:0 0 13px}.field{margin:10px 0}.field label{display:flex;justify-content:space-between;color:var(--muted);font-size:13px}.field input[type=number]{width:100%;margin-top:6px;background:#071512;border:1px solid #294942;color:white;padding:10px;border-radius:9px}.switch{display:flex;gap:9px;align-items:center;color:var(--muted)}.save{margin-top:14px;background:var(--blue);color:#071221}.toast{position:fixed;right:18px;bottom:18px;background:#e9fff8;color:#09231d;padding:12px 16px;border-radius:12px;opacity:0;transform:translateY(10px);transition:.2s}.toast.show{opacity:1;transform:none}@media(max-width:720px){.grid{grid-template-columns:1fr}.hero{grid-row:auto}.settings{grid-column:auto}.form{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}.mode{font-size:29px}}
+#trimSlider{width:100%;accent-color:var(--mint)}
 [data-jog]{touch-action:none;user-select:none}
 .wifi-form{display:grid;gap:10px;max-width:400px}.wifi-form select,.wifi-form input{width:100%;padding:10px;border-radius:9px;border:1px solid #294942;background:#071512;color:var(--ink)}
 </style></head>
@@ -370,6 +386,12 @@ static const char WEB_APP[] PROGMEM = R"HTML(
 <option value="normal" selected>Normal</option>
 <option value="fast">Schnell</option>
 </select></label>
+</div>
+<div class="field">
+<label for="trimSlider">Trim-Regler <output id="trimValue" for="trimSlider">100 %</output></label>
+<input id="trimSlider" type="range" min="80" max="120" step="0.1" value="100" disabled>
+<div class="event" id="trimSource"></div>
+<div class="event" id="trimError" role="status" hidden></div>
 </div>
 <div class="event" id="controlStatus" role="status" hidden></div>
 <div class="event" id="jogStatus" role="status"></div>
@@ -472,8 +494,47 @@ wifiForm.addEventListener('submit', async event => {
   }
 });
 async function api(path,options){const r=await fetch(path,options);if(!r.ok)throw Error(await r.text());return r.json()}
+const trimSlider = $('trimSlider');
+let pendingTrim = null, sendingTrim = false, trimRevision = 0;
+
+function showTrim(status, revision) {
+  if (sendingTrim || revision !== trimRevision) return;
+  trimSlider.min = status.settings.trimMin;
+  trimSlider.max = status.settings.trimMax;
+  trimSlider.value = status.trimTarget;
+  trimSlider.disabled = false;
+  $('trimValue').textContent = trimSlider.value + ' %';
+  $('trimSource').textContent = status.trimSource === 'web' ? 'Web-Regler aktiv' :
+    status.trimSource === 'pot' ? 'Physisches Poti aktiv' : 'Standardwert aktiv';
+}
+
+trimSlider.addEventListener('input', async () => {
+  pendingTrim = trimSlider.value;
+  trimRevision++;
+  $('trimValue').textContent = pendingTrim + ' %';
+  $('trimError').hidden = true;
+  if (sendingTrim) return;
+  sendingTrim = true;
+  try {
+    while (pendingTrim !== null) {
+      const value = pendingTrim;
+      pendingTrim = null;
+      await api('/api/trim', {method: 'POST', body: new URLSearchParams({value})});
+      $('trimSource').textContent = 'Web-Regler aktiv';
+    }
+  } catch {
+    pendingTrim = null;
+    $('trimError').textContent = 'Trim konnte nicht übertragen werden.';
+    $('trimError').hidden = false;
+  } finally {
+    sendingTrim = false;
+    trimRevision++;
+    refresh();
+  }
+});
+
 function selected(id,on){$(id).classList.toggle('active',on)}
-async function refresh(){try{const s=await api('/api/status');showWifi(s.wifi);$('connection').textContent='Verbunden';$('mode').textContent=s.mode+(s.phase!=='–'?' · '+s.phase:'');$('direction').textContent=s.direction;$('trim').textContent=s.trim.toFixed(1)+' %';$('speed').textContent=s.revPerHour.toFixed(2)+' rev/h';$('tracking').textContent=s.tracking?'Nachführung stoppen':'Nachführung starten';$('event').textContent=s.event;$('clients').textContent=s.clients;$('uptime').textContent=Math.floor(s.uptime/60)+' min';$('stopHome').textContent=s.homeStop?'Home aktiv':'Home frei';$('stopEnd').textContent=s.endStop?'Ende aktiv':'Ende frei';$('stopHome').classList.toggle('on',s.homeStop);$('stopEnd').classList.toggle('on',s.endStop);selected('north',s.rate==='sidereal'&&s.direction==='Nord');selected('south',s.rate==='sidereal'&&s.direction==='Süd');selected('lunar',s.rate==='lunar');if(!hydrated){Object.entries(s.settings).forEach(([k,v])=>{if(form.elements[k])form.elements[k].type==='checkbox'?form.elements[k].checked=v:form.elements[k].value=v});hydrated=true}}catch(e){$('connection').textContent='Verbindung getrennt'}}
+async function refresh(){const revision=trimRevision;try{const s=await api('/api/status');showTrim(s,revision);showWifi(s.wifi);$('connection').textContent='Verbunden';$('mode').textContent=s.mode+(s.phase!=='–'?' · '+s.phase:'');$('direction').textContent=s.direction;$('trim').textContent=s.trim.toFixed(1)+' %';$('speed').textContent=s.revPerHour.toFixed(2)+' rev/h';$('tracking').textContent=s.tracking?'Nachführung stoppen':'Nachführung starten';$('event').textContent=s.event;$('clients').textContent=s.clients;$('uptime').textContent=Math.floor(s.uptime/60)+' min';$('stopHome').textContent=s.homeStop?'Home aktiv':'Home frei';$('stopEnd').textContent=s.endStop?'Ende aktiv':'Ende frei';$('stopHome').classList.toggle('on',s.homeStop);$('stopEnd').classList.toggle('on',s.endStop);selected('north',s.rate==='sidereal'&&s.direction==='Nord');selected('south',s.rate==='sidereal'&&s.direction==='Süd');selected('lunar',s.rate==='lunar');if(!hydrated){Object.entries(s.settings).forEach(([k,v])=>{if(form.elements[k])form.elements[k].type==='checkbox'?form.elements[k].checked=v:form.elements[k].value=v});hydrated=true}}catch(e){$('connection').textContent='Verbindung getrennt'}}
 async function requestControl(action, fields = {}, keepalive = false) {
   const response = await fetch('/api/control', {
     method: 'POST',
@@ -728,6 +789,10 @@ static void sendJsonStatus() {
   json += F(",\"revPerHour\":"); json += String(shaftRevPerHour(targetUsps), 3);
   json += F(",\"homeStop\":"); json += stops.home ? "true" : "false";
   json += F(",\"endStop\":"); json += stops.end ? "true" : "false";
+  json += F(",\"trimTarget\":"); json += String(trimTarget * 100.0f, 1);
+  json += F(",\"trimSource\":\"");
+  json += webTrimActive ? "web" : (config.potEnabled && potOk ? "pot" : "default");
+  json += '"';
   json += F(",\"potOk\":"); json += potOk ? "true" : "false";
   json += F(",\"clients\":"); json += WiFi.softAPgetStationNum();
   json += F(",\"uptime\":"); json += millis() / 1000UL;
@@ -828,6 +893,21 @@ static int argInt(const char *name, int fallback) {
   return server.hasArg(name) ? server.arg(name).toInt() : fallback;
 }
 
+static void handleTrim() {
+  const String value = server.arg("value");
+  char *end = nullptr;
+  const float percent = strtof(value.c_str(), &end);
+  if (!value.length() || end != value.c_str() + value.length() || !isfinite(percent)) {
+    server.send(400, "application/json", "{\"ok\":false}");
+    return;
+  }
+  webTrimPct = clampFloat(percent, config.trimMinPct, config.trimMaxPct);
+  potRawAtWebTrim = filteredPotRaw;
+  webTrimActive = true;
+  trimTarget = webTrimPct / 100.0f;
+  server.send(200, "application/json", "{\"ok\":true}");
+}
+
 static void handleSettings() {
   config.potEnabled = server.arg("pot") != "0";
   config.trimMinPct = clampFloat(argFloat("trimMin", config.trimMinPct), 50.0f, 100.0f);
@@ -838,6 +918,7 @@ static void handleSettings() {
   config.homeFastMultiplier = clampFloat(argFloat("homeFast", config.homeFastMultiplier), 20.0f, 500.0f);
   config.homeBackoffMultiplier = clampFloat(argFloat("homeBack", config.homeBackoffMultiplier), 20.0f, 300.0f);
   config.homeSlowMultiplier = clampFloat(argFloat("homeSlow", config.homeSlowMultiplier), 5.0f, 150.0f);
+  webTrimPct = clampFloat(webTrimPct, config.trimMinPct, config.trimMaxPct);
   saveSettings();
   setEvent("Einstellungen gespeichert");
   uint16_t activeCurrent = config.currentTrackingMa;
@@ -937,6 +1018,7 @@ static void setupWebServer() {
   server.on("/api/status", HTTP_GET, sendJsonStatus);
   server.on("/api/control", HTTP_POST, handleControl);
   server.on("/api/settings", HTTP_POST, handleSettings);
+  server.on("/api/trim", HTTP_POST, handleTrim);
   server.onNotFound([]() {
     server.sendHeader("Location", "/");
     server.send(302, "text/plain", "");
@@ -986,6 +1068,7 @@ void setup() {
   driver.mstep_reg_select(true);
   driver.microsteps((uint16_t)MICROSTEPS);
   driver.intpol(true);
+  driver.en_spreadCycle(false);  // Use StealthChop for tracking, jog and homing.
   driver.pwm_autoscale(true);
   driver.TPOWERDOWN(10);
   driver.rms_current(config.currentTrackingMa);
@@ -1094,8 +1177,8 @@ void loop() {
   }
   digitalWrite(PIN_DIR, motorDirectionLevel(forward));
 
-  float trim = readTrim();
-  smoothedTrim += 0.18f * (trim - smoothedTrim);
+  trimTarget = readTrim();
+  smoothedTrim += 0.18f * (trimTarget - smoothedTrim);
   if (mode == MODE_HOMING) {
     if (homePhase == HOME_BACKOFF) targetUsps = baseUsps * config.homeBackoffMultiplier;
     else if (homePhase == HOME_SLOW) targetUsps = baseUsps * config.homeSlowMultiplier;
