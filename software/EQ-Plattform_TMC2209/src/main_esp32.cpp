@@ -367,28 +367,173 @@ static void handlePhysicalControls() {
   wasPressed = pressed;
 }
 
+static bool english = false;
+
+static const struct { const char *de; const char *en; } translations[] = {
+  {"Aktueller Modus", "Current mode"},
+  {"Richtung", "Direction"},
+  {"Welle", "Shaft"},
+  {"Nachführung starten", "Start tracking"},
+  {"Nachführung stoppen", "Stop tracking"},
+  {"Stopp", "Stop"},
+  {"Motor manuell verfahren", "Move motor manually"},
+  {"Motor nach links", "Move motor left"},
+  {"Motor nach rechts", "Move motor right"},
+  {"Langsam", "Slow"},
+  {"Schnell", "Fast"},
+  {"Trim-Regler", "Trim control"},
+  {"Nachführmodus", "Tracking mode"},
+  {"Nord", "North"},
+  {"Süd", "South"},
+  {"Mond", "Moon"},
+  {"Endschalter", "Limit switches"},
+  {"Home frei", "Home clear"},
+  {"Ende frei", "End clear"},
+  {"Home aktiv", "Home active"},
+  {"Ende aktiv", "End active"},
+  {"Gerät(e) im Hotspot", "device(s) on hotspot"},
+  {"Konfiguration", "Configuration"},
+  {"Feinabstimmung", "Fine tuning"},
+  {"wird im ESP32 gespeichert", "Saved on the ESP32"},
+  {"physischen Poti verwenden", "Use physical potentiometer"},
+  {"Motorstrom (RMS)", "Motor current (RMS)"},
+  {"Homing schnell", "Fast homing"},
+  {"Homing langsam", "Slow homing"},
+  {"Homing-Geschwindigkeit", "Homing speed"},
+  {"Schnellfahrt", "Fast approach"},
+  {"Freifahren", "Backoff"},
+  {"Feinsuche", "Slow approach"},
+  {"× siderisch", "× sidereal"},
+  {"Einstellungen speichern", "Save settings"},
+  {"Heim-WLAN", "Home Wi-Fi"},
+  {"WLAN-Status wird geladen …", "Loading Wi-Fi status …"},
+  {"Zum Einrichten mit dem Hotspot EQ-Plattform verbinden.", "Connect to the EQ-Plattform hotspot to set up Wi-Fi."},
+  {"Nach WLAN suchen", "Scan for Wi-Fi"},
+  {"WLAN auswählen", "Select Wi-Fi network"},
+  {"WLAN-Passwort", "Wi-Fi password"},
+  {"Verbinden", "Connect"},
+  {"Firmware aktualisieren", "Update firmware"},
+  {"Plattform anhalten und eine ESP32-OTA-Datei (.bin) auswählen.", "Stop the platform and select an ESP32 OTA file (.bin)."},
+  {"ESP32-OTA-Datei", "ESP32 OTA file"},
+  {"Update installieren", "Install update"},
+  {"Gespeichert", "Saved"},
+  {"Verbindung wird aufgebaut …", "Connecting …"},
+  {"Heimnetz-Adresse: ", "Home network address: "},
+  {"Kein Heim-WLAN verbunden.", "No home Wi-Fi connection."},
+  {"Suche läuft …", "Scanning …"},
+  {"Bitte auswählen", "Select a network"},
+  {"Keine 2,4-GHz-Netze gefunden.", "No 2.4 GHz networks found."},
+  {"WLAN-Suche hat zu lange gedauert.", "Wi-Fi scan timed out."},
+  {"Web-Regler aktiv", "Web control active"},
+  {"Physisches Poti aktiv", "Physical potentiometer active"},
+  {"Standardwert aktiv", "Default value active"},
+  {"Trim konnte nicht übertragen werden.", "Could not send trim value."},
+  {"Verbunden", "Connected"},
+  {"Verbindung getrennt", "Disconnected"},
+  {"Befehl konnte nicht ausgeführt werden.", "Could not execute command."},
+  {"Keine Verbindung zum ESP32.", "Cannot connect to the ESP32."},
+  {"Motor fährt …", "Motor moving …"},
+  {"Nachführung oder Homing vor dem Update stoppen.", "Stop the platform before updating."},
+  {"Firmware wird übertragen. ESP32 eingeschaltet lassen.", "Uploading firmware. Keep the ESP32 powered on."},
+  {"Verbindung unterbrochen. Nach dem Wiederverbinden den Status prüfen.", "Connection lost. Reconnect and check the status."},
+  {"Sprache", "Language"},
+  {"Sternwartensteuerung", "Observatory control"},
+  {"System bereit", "System ready"},
+  {"Nachführung", "Tracking"},
+  {"Manuelles Verfahren", "Manual movement"},
+  {"Bereit", "Ready"},
+  {"Homing gestartet", "Homing started"},
+  {"Richtung: Nord (Schalter)", "Direction: North (switch)"},
+  {"Richtung: Süd (Schalter)", "Direction: South (switch)"},
+  {"Mondrate (Schalter Mitte)", "Lunar rate (center switch)"},
+  {"Nachführung gestartet", "Tracking started"},
+  {"Nachführung gestoppt", "Tracking stopped"},
+  {"WLAN-Einrichtung nur über den Plattform-Hotspot.", "Wi-Fi setup is available through the platform hotspot."},
+  {"Verbunden, aber das WLAN-Profil konnte nicht gespeichert werden.", "Connected, but the Wi-Fi profile could not be saved."},
+  {"Verbindung fehlgeschlagen. Passwort und WLAN-Empfang prüfen.", "Connection failed. Check the password and Wi-Fi signal."},
+  {"Bitte den Verbindungsversuch abwarten.", "Wait for the connection attempt to finish."},
+  {"WLAN-Suche konnte nicht gestartet werden. Bitte erneut versuchen.", "Could not start the Wi-Fi scan. Try again."},
+  {"WLAN-Suche fehlgeschlagen.", "Wi-Fi scan failed."},
+  {"Bitte die laufende WLAN-Anfrage abwarten.", "Wait for the current Wi-Fi request to finish."},
+  {"Ungültiger WLAN-Name oder ungültige Passwortlänge.", "Invalid network name or password length."},
+  {"Manuelles Verfahren gestoppt", "Manual movement stopped"},
+  {"Manuelles Verfahren beendet.", "Manual movement ended."},
+  {"Plattform zuerst stoppen.", "Stop the platform first."},
+  {"Ungültige Richtung oder Geschwindigkeit.", "Invalid direction or speed."},
+  {"Endschalter in dieser Richtung aktiv.", "Limit switch active in this direction."},
+  {"Motor fährt nach rechts", "Motor moving right"},
+  {"Motor fährt nach links", "Motor moving left"},
+  {"Nachführung per Web gestartet", "Tracking started from web UI"},
+  {"Nachführung per Web gestoppt", "Tracking stopped from web UI"},
+  {"Stopp per Web", "Stopped from web UI"},
+  {"Richtung: Nord (Web)", "Direction: North (web)"},
+  {"Richtung: Süd (Web)", "Direction: South (web)"},
+  {"Mondrate (Web)", "Lunar rate (web)"},
+  {"Befehl nicht möglich", "Command unavailable"},
+  {"Einstellungen gespeichert", "Settings saved"},
+  {"ESP32-OTA-Datei fehlt.", "ESP32 OTA file missing."},
+  {"Bitte genau eine OTA-Datei senden.", "Upload exactly one OTA file."},
+  {"Eine ESP32-OTA-Datei (.bin) mit gültiger Größe auswählen.", "Select a valid ESP32 OTA file (.bin)."},
+  {"Datei zu groß oder OTA-Partition nicht verfügbar.", "File too large or OTA partition unavailable."},
+  {"Firmware-Update läuft", "Firmware update running"},
+  {"Firmware-Upload unvollständig.", "Firmware upload incomplete."},
+  {"Ungültige OTA-Datei oder Schreibfehler.", "Invalid OTA file or write error."},
+  {"Firmware-Upload abgebrochen.", "Firmware upload canceled."},
+  {"Firmware konnte nicht aktiviert werden.", "Could not activate firmware."},
+  {"Firmware installiert. Der ESP32 startet neu. Bei Bedarf erneut mit EQ-Plattform verbinden.", "Firmware installed. The ESP32 is restarting. Reconnect to EQ-Plattform if needed."},
+  {"Hotspot und Web-App bereit", "Hotspot and web app ready"},
+  {"Endschalter erreicht", "Limit switch reached"},
+  {"Manuelles Verfahren beendet", "Manual movement ended"},
+  {"Homing-Richtung korrigiert", "Homing direction corrected"},
+  {"Homing abgebrochen: Endschalter", "Homing aborted: limit switch"},
+  {"Home gefunden, Plattform fährt frei", "Home found, backing off"},
+  {"Homing-Feinsuche", "Slow homing approach"},
+  {"Homing abgebrochen: Schalter bleibt aktiv", "Homing aborted: switch still active"},
+  {"Homing abgeschlossen", "Homing complete"},
+  {"Manuell fahren", "Manual jog"},
+  {"Richt. %s %s", "Dir. %s %s"},
+  {"Schalter H%d E%d", "Limits H%d E%d"},
+  {"WLAN startet...", "Wi-Fi starting"},
+  {"Sprache konnte nicht gespeichert werden.", "Could not save language."},
+  {"Ungültige Sprache.", "Invalid language."},
+};
+
+static const char *translate(const char *text) {
+  if (english) {
+    for (const auto &entry : translations) {
+      if (strcmp(text, entry.de) == 0) return entry.en;
+    }
+  }
+  return text;
+}
+
 static const char WEB_APP[] PROGMEM = R"HTML(
-<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!doctype html><html lang="{{de}}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>EQ Plattform</title><style>
 :root{--ink:#edf7f5;--muted:#8ea7a3;--panel:#102321;--line:#23403c;--mint:#56e0b1;--blue:#77aaff;--danger:#ff7979;--bg:#07110f}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,#173733 0,transparent 34%),var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,sans-serif}.wrap{max-width:980px;margin:auto;padding:24px 18px 50px}header{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}.brand{display:flex;gap:12px;align-items:center}.logo{display:grid;place-items:center;width:46px;height:46px;border:1px solid #47736b;border-radius:14px;background:#132a27;font-size:23px}.eyebrow{color:var(--mint);font-size:11px;letter-spacing:.16em;text-transform:uppercase}.brand h1{font-size:20px;margin:2px 0}.online{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:13px}.dot{width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 12px var(--mint)}.grid{display:grid;grid-template-columns:1.35fr .65fr;gap:16px}.card{background:linear-gradient(145deg,#112623ee,#0c1d1bee);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 16px 50px #0004}.hero{grid-row:span 2}.label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.1em}.mode{font-size:34px;font-weight:650;margin:7px 0 20px}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.metric{padding:13px;background:#081816;border:1px solid #1d3834;border-radius:14px}.metric b{display:block;font-size:20px;margin-top:5px}.controls{display:flex;gap:10px;margin-top:18px}.btn{border:0;border-radius:12px;padding:12px 15px;background:#203b37;color:var(--ink);font-weight:650;cursor:pointer}.btn.primary{background:var(--mint);color:#082019;flex:1}.btn.danger{color:#ffc1c1}.btn:active{transform:translateY(1px)}.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:5px;background:#081816;border-radius:13px;margin-top:10px}.seg button{border:0;border-radius:9px;background:transparent;color:var(--muted);padding:10px 4px;cursor:pointer}.seg button.active{background:#24453f;color:white}.stoprow{display:flex;gap:9px;margin-top:12px}.stop{flex:1;padding:10px;border-radius:12px;background:#081816;color:var(--muted)}.stop.on{color:#ffaeae;border:1px solid #753b3b}.event{color:var(--muted);margin-top:14px;font-size:13px}.settings{grid-column:1/-1}.settings-head{display:flex;justify-content:space-between;align-items:center}.settings h2{font-size:18px;margin:0}.form{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}.group{padding:15px;border:1px solid var(--line);border-radius:15px}.group h3{font-size:14px;margin:0 0 13px}.field{margin:10px 0}.field label{display:flex;justify-content:space-between;color:var(--muted);font-size:13px}.field input[type=number]{width:100%;margin-top:6px;background:#071512;border:1px solid #294942;color:white;padding:10px;border-radius:9px}.switch{display:flex;gap:9px;align-items:center;color:var(--muted)}.save{margin-top:14px;background:var(--blue);color:#071221}.toast{position:fixed;right:18px;bottom:18px;background:#e9fff8;color:#09231d;padding:12px 16px;border-radius:12px;opacity:0;transform:translateY(10px);transition:.2s}.toast.show{opacity:1;transform:none}@media(max-width:720px){.grid{grid-template-columns:1fr}.hero{grid-row:auto}.settings{grid-column:auto}.form{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}.mode{font-size:29px}}
 #trimSlider{width:100%;accent-color:var(--mint)}
 [data-jog]{touch-action:none;user-select:none}
 .wifi-form{display:grid;gap:10px;max-width:400px}.wifi-form select,.wifi-form input{width:100%;padding:10px;border-radius:9px;border:1px solid #294942;background:#071512;color:var(--ink)}
+.language{display:flex;gap:4px}.language .btn{padding:6px 9px}.language .btn:disabled{color:var(--mint)}header{flex-wrap:wrap;gap:10px}
 </style></head>
-<body><div class="wrap"><header><div class="brand"><div class="logo">✦</div><div><div class="eyebrow">Observatory control</div><h1>EQ Plattform</h1></div></div><div class="online"><i class="dot"></i><span id="connection">Verbunden</span></div></header>
-<main class="grid"><section class="card hero"><div class="label">Aktueller Modus</div><div class="mode" id="mode">–</div><div class="metrics"><div class="metric"><span class="label">Richtung</span><b id="direction">–</b></div><div class="metric"><span class="label">Trim</span><b id="trim">–</b></div><div class="metric"><span class="label">Welle</span><b id="speed">–</b></div></div><div class="controls"><button class="btn primary" id="tracking" type="button" data-control="toggle">Nachführung starten</button><button class="btn" type="button" data-control="home">Homing</button><button class="btn danger" type="button" data-control="stop">Stopp</button></div>
-<div class="controls" role="group" aria-label="Motor manuell verfahren">
-<button type="button" class="btn" aria-label="Motor nach links" data-jog="left">←</button>
-<button type="button" class="btn" aria-label="Motor nach rechts" data-jog="right">→</button>
+<body><div class="wrap"><header><div class="brand"><div class="logo">✦</div><div><div class="eyebrow">{{Sternwartensteuerung}}</div><h1>EQ Plattform</h1></div></div><div class="online"><i class="dot"></i><span id="connection">{{Verbunden}}</span></div>
+<form class="language" action="/language" method="post" aria-label="{{Sprache}}">
+<button class="btn" type="submit" name="language" value="de" lang="de" {{select-de}}>Deutsch</button>
+<button class="btn" type="submit" name="language" value="en" lang="en" {{select-en}}>English</button>
+</form></header>
+<main class="grid"><section class="card hero"><div class="label">{{Aktueller Modus}}</div><div class="mode" id="mode">–</div><div class="metrics"><div class="metric"><span class="label">{{Richtung}}</span><b id="direction">–</b></div><div class="metric"><span class="label">Trim</span><b id="trim">–</b></div><div class="metric"><span class="label">{{Welle}}</span><b id="speed">–</b></div></div><div class="controls"><button class="btn primary" id="tracking" type="button" data-control="toggle">{{Nachführung starten}}</button><button class="btn" type="button" data-control="home">Homing</button><button class="btn danger" type="button" data-control="stop">{{Stopp}}</button></div>
+<div class="controls" role="group" aria-label="{{Motor manuell verfahren}}">
+<button type="button" class="btn" aria-label="{{Motor nach links}}" data-jog="left">←</button>
+<button type="button" class="btn" aria-label="{{Motor nach rechts}}" data-jog="right">→</button>
 <label class="switch">Geschwindigkeit
 <select id="jogSpeed" class="btn">
-<option value="slow">Langsam</option>
+<option value="slow">{{Langsam}}</option>
 <option value="normal" selected>Normal</option>
-<option value="fast">Schnell</option>
+<option value="fast">{{Schnell}}</option>
 </select></label>
 </div>
 <div class="field">
-<label for="trimSlider">Trim-Regler <output id="trimValue" for="trimSlider">100 %</output></label>
+<label for="trimSlider">{{Trim-Regler}} <output id="trimValue" for="trimSlider">100 %</output></label>
 <input id="trimSlider" type="range" min="80" max="120" step="0.1" value="100" disabled>
 <div class="event" id="trimSource"></div>
 <div class="event" id="trimError" role="status" hidden></div>
@@ -396,29 +541,29 @@ static const char WEB_APP[] PROGMEM = R"HTML(
 <div class="event" id="controlStatus" role="status" hidden></div>
 <div class="event" id="jogStatus" role="status"></div>
 <div class="event" id="event">–</div></section>
-<section class="card"><div class="label">Nachführmodus</div><div class="seg"><button id="north" type="button" data-control="direction" data-value="north">Nord</button><button id="lunar" type="button" data-control="direction" data-value="lunar">Mond</button><button id="south" type="button" data-control="direction" data-value="south">Süd</button></div></section>
-<section class="card"><div class="label">Endschalter</div><div class="stoprow"><div class="stop" id="stopHome">Home frei</div><div class="stop" id="stopEnd">Ende frei</div></div><div class="event"><span id="clients">0</span> Gerät(e) im Hotspot · <span id="uptime">0 min</span></div></section>
-<section class="card settings"><div class="settings-head"><div><div class="label">Konfiguration</div><h2>Feinabstimmung</h2></div><span class="label">wird im ESP32 gespeichert</span></div><form id="settings" class="form"><div class="group"><h3>Potentiometer</h3><label class="switch"><input name="pot" type="checkbox"> physischen Poti verwenden</label><div class="field"><label>Minimum <span>%</span></label><input name="trimMin" type="number" min="50" max="100" step="0.5"></div><div class="field"><label>Maximum <span>%</span></label><input name="trimMax" type="number" min="100" max="150" step="0.5"></div></div><div class="group"><h3>Motorstrom (RMS)</h3><div class="field"><label>Tracking <span>mA</span></label><input name="curTrack" type="number" min="100" max="2000" step="50"></div><div class="field"><label>Homing schnell <span>mA</span></label><input name="curFast" type="number" min="100" max="2000" step="50"></div><div class="field"><label>Homing langsam <span>mA</span></label><input name="curSlow" type="number" min="100" max="2000" step="50"></div></div><div class="group"><h3>Homing-Geschwindigkeit</h3><div class="field"><label>Schnellfahrt <span>× siderisch</span></label><input name="homeFast" type="number" min="20" max="500" step="5"></div><div class="field"><label>Freifahren <span>× siderisch</span></label><input name="homeBack" type="number" min="20" max="300" step="5"></div><div class="field"><label>Feinsuche <span>× siderisch</span></label><input name="homeSlow" type="number" min="5" max="150" step="5"></div></div></form><button class="btn save" onclick="saveSettings()">Einstellungen speichern</button></section>
-<section class="card settings"><h2>Heim-WLAN</h2>
-<p id="wifiStatus" role="status">WLAN-Status wird geladen …</p>
-<p id="wifiHint">Zum Einrichten mit dem Hotspot EQ-Plattform verbinden.</p>
-<button class="btn" id="wifiScan" type="button" hidden>Nach WLAN suchen</button>
+<section class="card"><div class="label">{{Nachführmodus}}</div><div class="seg"><button id="north" type="button" data-control="direction" data-value="north">{{Nord}}</button><button id="lunar" type="button" data-control="direction" data-value="lunar">{{Mond}}</button><button id="south" type="button" data-control="direction" data-value="south">{{Süd}}</button></div></section>
+<section class="card"><div class="label">{{Endschalter}}</div><div class="stoprow"><div class="stop" id="stopHome">{{Home frei}}</div><div class="stop" id="stopEnd">{{Ende frei}}</div></div><div class="event"><span id="clients">0</span> {{Gerät(e) im Hotspot}} · <span id="uptime">0 min</span></div></section>
+<section class="card settings"><div class="settings-head"><div><div class="label">{{Konfiguration}}</div><h2>{{Feinabstimmung}}</h2></div><span class="label">{{wird im ESP32 gespeichert}}</span></div><form id="settings" class="form"><div class="group"><h3>Potentiometer</h3><label class="switch"><input name="pot" type="checkbox"> {{physischen Poti verwenden}}</label><div class="field"><label>Minimum <span>%</span></label><input name="trimMin" type="number" min="50" max="100" step="0.5"></div><div class="field"><label>Maximum <span>%</span></label><input name="trimMax" type="number" min="100" max="150" step="0.5"></div></div><div class="group"><h3>{{Motorstrom (RMS)}}</h3><div class="field"><label>Tracking <span>mA</span></label><input name="curTrack" type="number" min="100" max="2000" step="50"></div><div class="field"><label>{{Homing schnell}} <span>mA</span></label><input name="curFast" type="number" min="100" max="2000" step="50"></div><div class="field"><label>{{Homing langsam}} <span>mA</span></label><input name="curSlow" type="number" min="100" max="2000" step="50"></div></div><div class="group"><h3>{{Homing-Geschwindigkeit}}</h3><div class="field"><label>{{Schnellfahrt}} <span>{{× siderisch}}</span></label><input name="homeFast" type="number" min="20" max="500" step="5"></div><div class="field"><label>{{Freifahren}} <span>{{× siderisch}}</span></label><input name="homeBack" type="number" min="20" max="300" step="5"></div><div class="field"><label>{{Feinsuche}} <span>{{× siderisch}}</span></label><input name="homeSlow" type="number" min="5" max="150" step="5"></div></div></form><button class="btn save" onclick="saveSettings()">{{Einstellungen speichern}}</button></section>
+<section class="card settings"><h2>{{Heim-WLAN}}</h2>
+<p id="wifiStatus" role="status">{{WLAN-Status wird geladen …}}</p>
+<p id="wifiHint">{{Zum Einrichten mit dem Hotspot EQ-Plattform verbinden.}}</p>
+<button class="btn" id="wifiScan" type="button" hidden>{{Nach WLAN suchen}}</button>
 <form id="wifiForm" hidden>
 <div class="wifi-form">
-<label>WLAN auswählen <select name="ssid" required></select></label>
-<label id="wifiPassword" hidden>WLAN-Passwort <input name="password" type="password" maxlength="64" autocomplete="new-password"></label>
-<button class="btn save" type="submit">Verbinden</button>
+<label>{{WLAN auswählen}} <select name="ssid" required></select></label>
+<label id="wifiPassword" hidden>{{WLAN-Passwort}} <input name="password" type="password" maxlength="64" autocomplete="new-password"></label>
+<button class="btn save" type="submit">{{Verbinden}}</button>
 </div>
 </form>
 <p id="wifiMessage" role="status"></p><p id="wifiError" role="status"></p>
 </section>
-<section class="card settings"><h2>Firmware aktualisieren</h2>
+<section class="card settings"><h2>{{Firmware aktualisieren}}</h2>
 <form id="firmware">
-<p>Plattform anhalten und eine ESP32-OTA-Datei (.bin) auswählen.</p>
-<input name="image" type="file" accept=".bin" aria-label="ESP32-OTA-Datei" required>
-<button class="btn save" type="submit">Update installieren</button>
+<p>{{Plattform anhalten und eine ESP32-OTA-Datei (.bin) auswählen.}}</p>
+<input name="image" type="file" accept=".bin" aria-label="{{ESP32-OTA-Datei}}" required>
+<button class="btn save" type="submit">{{Update installieren}}</button>
 </form>
-<p id="firmwareStatus" role="status"></p></section></main></div><div class="toast" id="toast">Gespeichert</div>
+<p id="firmwareStatus" role="status"></p></section></main></div><div class="toast" id="toast">{{Gespeichert}}</div>
 <script>
 const $=id=>document.getElementById(id), form=$('settings');let hydrated=false;
 const wifiForm = $('wifiForm'), wifiScan = $('wifiScan');
@@ -428,8 +573,8 @@ function showWifi(wifi) {
   wifiScan.hidden = !wifi.setup;
   $('wifiHint').hidden = wifi.setup;
   const status = $('wifiStatus');
-  status.textContent = wifi.connecting ? 'Verbindung wird aufgebaut …' :
-    wifi.ip ? 'Heimnetz-Adresse: ' : 'Kein Heim-WLAN verbunden.';
+  status.textContent = wifi.connecting ? '{{Verbindung wird aufgebaut …}}' :
+    wifi.ip ? '{{Heimnetz-Adresse: }}' : '{{Kein Heim-WLAN verbunden.}}';
   if (wifi.ip && !wifi.connecting) {
     const link = document.createElement('a');
     link.href = link.textContent = 'http://' + wifi.ip;
@@ -445,14 +590,14 @@ async function wifiPost(path, body = new URLSearchParams()) {
 wifiScan.addEventListener('click', async () => {
   wifiBusy = wifiScan.disabled = true;
   wifiForm.hidden = true;
-  $('wifiMessage').textContent = 'Suche läuft …';
+  $('wifiMessage').textContent = '{{Suche läuft …}}';
   try {
     await wifiPost('/api/wifi/scan');
     for (let attempt = 0; attempt < 35; attempt++) {
       await new Promise(resolve => setTimeout(resolve, 450));
       const result = await api('/api/wifi/scan', {cache: 'no-store'});
       if (result.scanning) continue;
-      wifiNetwork.replaceChildren(new Option('Bitte auswählen', ''));
+      wifiNetwork.replaceChildren(new Option('{{Bitte auswählen}}', ''));
       for (const network of result.networks) {
         if ([...wifiNetwork.options].some(option => option.value === network.ssid)) continue;
         const option = new Option(network.ssid + ' (' + network.rssi + ' dBm)', network.ssid);
@@ -461,10 +606,10 @@ wifiScan.addEventListener('click', async () => {
       }
       wifiNetwork.dispatchEvent(new Event('change'));
       wifiForm.hidden = !result.networks.length;
-      $('wifiMessage').textContent = result.networks.length ? '' : 'Keine 2,4-GHz-Netze gefunden.';
+      $('wifiMessage').textContent = result.networks.length ? '' : '{{Keine 2,4-GHz-Netze gefunden.}}';
       return;
     }
-    throw Error('WLAN-Suche hat zu lange gedauert.');
+    throw Error('{{WLAN-Suche hat zu lange gedauert.}}');
   } catch (error) {
     $('wifiMessage').textContent = error.message;
   } finally {
@@ -504,8 +649,8 @@ function showTrim(status, revision) {
   trimSlider.value = status.trimTarget;
   trimSlider.disabled = false;
   $('trimValue').textContent = trimSlider.value + ' %';
-  $('trimSource').textContent = status.trimSource === 'web' ? 'Web-Regler aktiv' :
-    status.trimSource === 'pot' ? 'Physisches Poti aktiv' : 'Standardwert aktiv';
+  $('trimSource').textContent = status.trimSource === 'web' ? '{{Web-Regler aktiv}}' :
+    status.trimSource === 'pot' ? '{{Physisches Poti aktiv}}' : '{{Standardwert aktiv}}';
 }
 
 trimSlider.addEventListener('input', async () => {
@@ -520,11 +665,11 @@ trimSlider.addEventListener('input', async () => {
       const value = pendingTrim;
       pendingTrim = null;
       await api('/api/trim', {method: 'POST', body: new URLSearchParams({value})});
-      $('trimSource').textContent = 'Web-Regler aktiv';
+      $('trimSource').textContent = '{{Web-Regler aktiv}}';
     }
   } catch {
     pendingTrim = null;
-    $('trimError').textContent = 'Trim konnte nicht übertragen werden.';
+    $('trimError').textContent = '{{Trim konnte nicht übertragen werden.}}';
     $('trimError').hidden = false;
   } finally {
     sendingTrim = false;
@@ -534,7 +679,7 @@ trimSlider.addEventListener('input', async () => {
 });
 
 function selected(id,on){$(id).classList.toggle('active',on)}
-async function refresh(){const revision=trimRevision;try{const s=await api('/api/status');showTrim(s,revision);showWifi(s.wifi);$('connection').textContent='Verbunden';$('mode').textContent=s.mode+(s.phase!=='–'?' · '+s.phase:'');$('direction').textContent=s.direction;$('trim').textContent=s.trim.toFixed(1)+' %';$('speed').textContent=s.revPerHour.toFixed(2)+' rev/h';$('tracking').textContent=s.tracking?'Nachführung stoppen':'Nachführung starten';$('event').textContent=s.event;$('clients').textContent=s.clients;$('uptime').textContent=Math.floor(s.uptime/60)+' min';$('stopHome').textContent=s.homeStop?'Home aktiv':'Home frei';$('stopEnd').textContent=s.endStop?'Ende aktiv':'Ende frei';$('stopHome').classList.toggle('on',s.homeStop);$('stopEnd').classList.toggle('on',s.endStop);selected('north',s.rate==='sidereal'&&s.direction==='Nord');selected('south',s.rate==='sidereal'&&s.direction==='Süd');selected('lunar',s.rate==='lunar');if(!hydrated){Object.entries(s.settings).forEach(([k,v])=>{if(form.elements[k])form.elements[k].type==='checkbox'?form.elements[k].checked=v:form.elements[k].value=v});hydrated=true}}catch(e){$('connection').textContent='Verbindung getrennt'}}
+async function refresh(){const revision=trimRevision;try{const s=await api('/api/status',{cache:'no-store'});if(s.language!==document.documentElement.lang){location.reload();return;}showTrim(s,revision);showWifi(s.wifi);$('connection').textContent='{{Verbunden}}';$('mode').textContent=s.mode+(s.phase!=='–'?' · '+s.phase:'');$('direction').textContent=s.direction;$('trim').textContent=s.trim.toFixed(1)+' %';$('speed').textContent=s.revPerHour.toFixed(2)+' rev/h';$('tracking').textContent=s.tracking?'{{Nachführung stoppen}}':'{{Nachführung starten}}';$('event').textContent=s.event;$('clients').textContent=s.clients;$('uptime').textContent=Math.floor(s.uptime/60)+' min';$('stopHome').textContent=s.homeStop?'{{Home aktiv}}':'{{Home frei}}';$('stopEnd').textContent=s.endStop?'{{Ende aktiv}}':'{{Ende frei}}';$('stopHome').classList.toggle('on',s.homeStop);$('stopEnd').classList.toggle('on',s.endStop);selected('north',s.rate==='sidereal'&&s.forward);selected('south',s.rate==='sidereal'&&!s.forward);selected('lunar',s.rate==='lunar');if(!hydrated){Object.entries(s.settings).forEach(([k,v])=>{if(form.elements[k])form.elements[k].type==='checkbox'?form.elements[k].checked=v:form.elements[k].value=v});hydrated=true}}catch(e){$('connection').textContent='{{Verbindung getrennt}}'}}
 async function requestControl(action, fields = {}, keepalive = false) {
   const response = await fetch('/api/control', {
     method: 'POST',
@@ -543,7 +688,7 @@ async function requestControl(action, fields = {}, keepalive = false) {
   });
   if (!response.ok) {
     const result = await response.json();
-    throw Error(result.error || 'Befehl konnte nicht ausgeführt werden.');
+    throw Error(result.error || '{{Befehl konnte nicht ausgeführt werden.}}');
   }
 }
 for (const button of document.querySelectorAll('[data-control]')) {
@@ -555,7 +700,7 @@ for (const button of document.querySelectorAll('[data-control]')) {
       await requestControl(control, value ? {value} : {});
       await refresh();
     } catch (error) {
-      status.textContent = error instanceof TypeError ? 'Keine Verbindung zum ESP32.' : error.message;
+      status.textContent = error instanceof TypeError ? '{{Keine Verbindung zum ESP32.}}' : error.message;
       status.hidden = false;
     }
   });
@@ -579,14 +724,14 @@ function startJog(button, input) {
   const jog = {button, input, side: button.dataset.jog, speed: $('jogSpeed').value,
     owner: Array.from(crypto.getRandomValues(new Uint32Array(2)), n => n.toString(16).padStart(8, '0')).join('')};
   activeJog = jog;
-  $('jogStatus').textContent = 'Motor fährt …';
+  $('jogStatus').textContent = '{{Motor fährt …}}';
   function send(action) {
     jog.request = jogRequest(action, jog).then(() => {
       if (activeJog === jog) jog.timer = setTimeout(() => send('jogKeep'), 120);
     }).catch(error => {
       if (activeJog === jog) {
         endJog();
-        $('jogStatus').textContent = error instanceof TypeError ? 'Keine Verbindung zum ESP32.' : error.message;
+        $('jogStatus').textContent = error instanceof TypeError ? '{{Keine Verbindung zum ESP32.}}' : error.message;
       }
     });
   }
@@ -630,12 +775,12 @@ firmwareForm.addEventListener('submit', async event => {
   firmwareUpdating = button.disabled = true;
   try {
     const current = await api('/api/status');
-    if (current.mode !== 'Bereit') {
-      status.textContent = 'Nachführung oder Homing vor dem Update stoppen.';
+    if (!current.idle) {
+      status.textContent = '{{Nachführung oder Homing vor dem Update stoppen.}}';
       firmwareUpdating = button.disabled = false;
       return;
     }
-    status.textContent = 'Firmware wird übertragen. ESP32 eingeschaltet lassen.';
+    status.textContent = '{{Firmware wird übertragen. ESP32 eingeschaltet lassen.}}';
     const response = await fetch('/api/firmware', {
       method: 'POST',
       headers: {'X-Firmware-Size': String(file.size)},
@@ -653,7 +798,7 @@ firmwareForm.addEventListener('submit', async event => {
       return;
     }
   } catch {
-    status.textContent = 'Verbindung unterbrochen. Nach dem Wiederverbinden den Status prüfen.';
+    status.textContent = '{{Verbindung unterbrochen. Nach dem Wiederverbinden den Status prüfen.}}';
   }
   firmwareUpdating = button.disabled = false;
 });
@@ -683,7 +828,7 @@ static bool viaHotspot() {
 
 static bool allowWifiSetup(bool write) {
   if (viaHotspot() && (!write || server.header("X-EQ-Wifi") == "1")) return true;
-  server.send(403, "text/plain; charset=utf-8", "WLAN-Einrichtung nur über den Plattform-Hotspot.");
+  server.send(403, "text/plain; charset=utf-8", translate("WLAN-Einrichtung nur über den Plattform-Hotspot."));
   return false;
 }
 
@@ -719,12 +864,12 @@ static void updateWifiConnection() {
 static void startWifiScan() {
   if (!allowWifiSetup(true)) return;
   if (pendingWifi.ssid[0]) {
-    server.send(409, "text/plain; charset=utf-8", "Bitte den Verbindungsversuch abwarten.");
+    server.send(409, "text/plain; charset=utf-8", translate("Bitte den Verbindungsversuch abwarten."));
     return;
   }
   wifiError = "";
   if (WiFi.scanNetworks(true) != WIFI_SCAN_RUNNING) {
-    server.send(503, "text/plain; charset=utf-8", "WLAN-Suche konnte nicht gestartet werden. Bitte erneut versuchen.");
+    server.send(503, "text/plain; charset=utf-8", translate("WLAN-Suche konnte nicht gestartet werden. Bitte erneut versuchen."));
     return;
   }
   server.send(202, "application/json", "{}");
@@ -738,7 +883,7 @@ static void sendWifiScan() {
     return;
   }
   if (count < 0) {
-    server.send(503, "text/plain; charset=utf-8", "WLAN-Suche fehlgeschlagen.");
+    server.send(503, "text/plain; charset=utf-8", translate("WLAN-Suche fehlgeschlagen."));
     return;
   }
   String json = "{\"networks\":[";
@@ -756,7 +901,7 @@ static void sendWifiScan() {
 static void handleWifiConnect() {
   if (!allowWifiSetup(true)) return;
   if (pendingWifi.ssid[0] || WiFi.scanComplete() == WIFI_SCAN_RUNNING) {
-    server.send(409, "text/plain; charset=utf-8", "Bitte die laufende WLAN-Anfrage abwarten.");
+    server.send(409, "text/plain; charset=utf-8", translate("Bitte die laufende WLAN-Anfrage abwarten."));
     return;
   }
   const String ssid = server.arg("ssid");
@@ -766,7 +911,7 @@ static void handleWifiConnect() {
       password.length() >= sizeof(pendingWifi.password) ||
       strlen(password.c_str()) != password.length() ||
       (password.length() && password.length() < 8)) {
-    server.send(400, "text/plain; charset=utf-8", "Ungültiger WLAN-Name oder ungültige Passwortlänge.");
+    server.send(400, "text/plain; charset=utf-8", translate("Ungültiger WLAN-Name oder ungültige Passwortlänge."));
     return;
   }
   ssid.toCharArray(pendingWifi.ssid, sizeof(pendingWifi.ssid));
@@ -780,10 +925,13 @@ static void sendJsonStatus() {
   Endstops stops = readEndstops();
   String json;
   json.reserve(850);
-  json += F("{\"mode\":\""); json += modeName();
-  json += F("\",\"phase\":\""); json += phaseName();
-  json += F("\",\"tracking\":"); json += mode == MODE_TRACKING ? "true" : "false";
-  json += F(",\"direction\":\""); json += trackForward ? "Nord" : "Süd";
+  json += F("{\"language\":\""); json += english ? "en" : "de";
+  json += F("\",\"idle\":"); json += mode == MODE_IDLE ? "true" : "false";
+  json += F(",\"forward\":"); json += trackForward ? "true" : "false";
+  json += F(",\"mode\":"); appendJsonString(json, translate(modeName()));
+  json += F(",\"phase\":"); appendJsonString(json, translate(phaseName()));
+  json += F(",\"tracking\":"); json += mode == MODE_TRACKING ? "true" : "false";
+  json += F(",\"direction\":\""); json += translate(trackForward ? "Nord" : "Süd");
   json += F("\",\"rate\":\""); json += trackRate == RATE_LUNAR ? "lunar" : "sidereal";
   json += F("\",\"trim\":"); json += String(smoothedTrim * 100.0f, 1);
   json += F(",\"revPerHour\":"); json += String(shaftRevPerHour(targetUsps), 3);
@@ -796,8 +944,8 @@ static void sendJsonStatus() {
   json += F(",\"potOk\":"); json += potOk ? "true" : "false";
   json += F(",\"clients\":"); json += WiFi.softAPgetStationNum();
   json += F(",\"uptime\":"); json += millis() / 1000UL;
-  json += F(",\"event\":\""); json += lastEvent;
-  json += F("\",\"settings\":{\"pot\":"); json += config.potEnabled ? "true" : "false";
+  json += F(",\"event\":"); appendJsonString(json, translate(lastEvent.c_str()));
+  json += F(",\"settings\":{\"pot\":"); json += config.potEnabled ? "true" : "false";
   json += F(",\"trimMin\":"); json += String(config.trimMinPct, 1);
   json += F(",\"trimMax\":"); json += String(config.trimMaxPct, 1);
   json += F(",\"curTrack\":"); json += config.currentTrackingMa;
@@ -810,9 +958,16 @@ static void sendJsonStatus() {
   json += F(",\"connecting\":"); json += pendingWifi.ssid[0] ? "true" : "false";
   json += F(",\"ip\":");
   appendJsonString(json, WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : "");
-  json += F(",\"error\":"); appendJsonString(json, wifiError);
+  json += F(",\"error\":"); appendJsonString(json, translate(wifiError));
   json += F("}}");
   server.send(200, "application/json", json);
+}
+
+static void sendControlError(int status, const char *message) {
+  String json = "{\"ok\":false,\"error\":";
+  appendJsonString(json, translate(message));
+  json += '}';
+  server.send(status, "application/json", json);
 }
 
 static void handleControl() {
@@ -823,13 +978,13 @@ static void handleControl() {
     const TickType_t now = xTaskGetTickCount();
     if (mode != MODE_JOG || jogEndstopHit || jogOwner != server.arg("owner") ||
         (int32_t)(now - jogDeadline) >= 0) {
-      server.send(409, "application/json", "{\"ok\":false,\"error\":\"Manuelles Verfahren beendet.\"}");
+      sendControlError(409, "Manuelles Verfahren beendet.");
       return;
     }
     jogDeadline = now + JOG_TIMEOUT_TICKS;
   } else if (action == "jogStart") {
     if (mode != MODE_IDLE) {
-      server.send(409, "application/json", "{\"ok\":false,\"error\":\"Plattform zuerst stoppen.\"}");
+      sendControlError(409, "Plattform zuerst stoppen.");
       return;
     }
     const String owner = server.arg("owner");
@@ -842,7 +997,7 @@ static void handleControl() {
     const String speed = server.arg("speed");
     if ((side != "left" && side != "right") ||
         (speed != "slow" && speed != "normal" && speed != "fast")) {
-      server.send(400, "application/json", "{\"ok\":false,\"error\":\"Ungültige Richtung oder Geschwindigkeit.\"}");
+      sendControlError(400, "Ungültige Richtung oder Geschwindigkeit.");
       return;
     }
 
@@ -850,7 +1005,7 @@ static void handleControl() {
     const bool towardHome = forward == homeForward;
     const Endstops stops = readEndstops();
     if (towardHome ? stops.home : stops.end) {
-      server.send(409, "application/json", "{\"ok\":false,\"error\":\"Endschalter in dieser Richtung aktiv.\"}");
+      sendControlError(409, "Endschalter in dieser Richtung aktiv.");
       return;
     }
 
@@ -880,7 +1035,7 @@ static void handleControl() {
       server.send(400, "application/json", "{\"ok\":false}"); return;
     }
   } else {
-    server.send(409, "application/json", "{\"ok\":false,\"error\":\"Befehl nicht möglich\"}"); return;
+    sendControlError(409, "Befehl nicht möglich"); return;
   }
   server.send(200, "application/json", "{\"ok\":true}");
 }
@@ -950,7 +1105,7 @@ static void handleFirmwareUpload() {
       if (mode != MODE_IDLE) {
         // Stop reading the request so motion and endstop handling resume immediately.
         server.send(409, "text/plain; charset=utf-8",
-                    "Nachführung oder Homing vor dem Update stoppen.");
+                    translate("Nachführung oder Homing vor dem Update stoppen."));
         shutdown(server.client().fd(), SHUT_RDWR);
         return;
       }
@@ -999,12 +1154,55 @@ static void finishFirmwareUpload() {
   }
   if (firmwareStatus == 200) {
     server.send(200, "text/plain; charset=utf-8",
-                "Firmware installiert. Der ESP32 startet neu. Bei Bedarf erneut mit EQ-Plattform verbinden.");
+                translate("Firmware installiert. Der ESP32 startet neu. Bei Bedarf erneut mit EQ-Plattform verbinden."));
     delay(500);
     ESP.restart();
     return;
   }
-  server.send(firmwareStatus, "text/plain; charset=utf-8", firmwareMessage);
+  server.send(firmwareStatus, "text/plain; charset=utf-8", translate(firmwareMessage));
+}
+
+static void serveWebApp() {
+  String page;
+  if (!page.reserve(sizeof(WEB_APP) + 512)) {
+    server.send(503, "text/plain", "Web UI temporarily unavailable.");
+    return;
+  }
+  const char *cursor = WEB_APP;
+  while (const char *start = strstr(cursor, "{{")) {
+    const char *end = strstr(start + 2, "}}");
+    if (!end) break;
+    page.concat(cursor, start - cursor);
+    String key;
+    key.concat(start + 2, end - start - 2);
+    if (key == "de") page += english ? "en" : "de";
+    else if (key == "select-de") page += english ? "" : "disabled";
+    else if (key == "select-en") page += english ? "disabled" : "";
+    else page += translate(key.c_str());
+    cursor = end + 2;
+  }
+  page += cursor;
+  server.sendHeader("Cache-Control", "no-store");
+  server.send(200, "text/html; charset=utf-8", page);
+}
+
+static void handleLanguage() {
+  const String language = server.arg("language");
+  if (language != "de" && language != "en") {
+    server.send(400, "text/plain; charset=utf-8", translate("Ungültige Sprache."));
+    return;
+  }
+  const bool useEnglish = language == "en";
+  if (useEnglish != english) {
+    Preferences storage;
+    if (!storage.begin("eq-ui", false) || !storage.putBool("english", useEnglish)) {
+      server.send(500, "text/plain; charset=utf-8", translate("Sprache konnte nicht gespeichert werden."));
+      return;
+    }
+    english = useEnglish;
+  }
+  server.sendHeader("Location", "/");
+  server.send(303, "text/plain", "");
 }
 
 static void setupWebServer() {
@@ -1014,7 +1212,8 @@ static void setupWebServer() {
   server.on("/api/wifi/scan", HTTP_GET, sendWifiScan);
   server.on("/api/wifi/connect", HTTP_POST, handleWifiConnect);
   server.on("/api/firmware", HTTP_POST, finishFirmwareUpload, handleFirmwareUpload);
-  server.on("/", HTTP_GET, []() { server.send_P(200, "text/html; charset=utf-8", WEB_APP); });
+  server.on("/", HTTP_GET, serveWebApp);
+  server.on("/language", HTTP_POST, handleLanguage);
   server.on("/api/status", HTTP_GET, sendJsonStatus);
   server.on("/api/control", HTTP_POST, handleControl);
   server.on("/api/settings", HTTP_POST, handleSettings);
@@ -1026,25 +1225,38 @@ static void setupWebServer() {
   server.begin();
 }
 
+static void drawOledLine(uint8_t row, const char *text) {
+  static constexpr char spaces[] = "                ";
+  oled.drawUTF8(0, row, text);
+  const uint8_t used = oled.getUTF8Len(text);
+  if (used < sizeof(spaces) - 1) oled.drawString(used, row, spaces + used);
+}
+
 static void updateOled() {
   static uint32_t previousMs = 0;
   if (millis() - previousMs < 300) return;
   previousMs = millis();
-  Endstops stops = readEndstops();
+  const Endstops stops = readEndstops();
   char line[17];
-  oled.drawString(0, 0, " EQ Platform    ");
-  snprintf(line, sizeof(line), " %-14s", modeName()); oled.drawString(0, 1, line);
-  snprintf(line, sizeof(line), " Dir:%-2s %s", trackForward ? "N" : "S", trackRate == RATE_LUNAR ? "LUNAR" : "SID"); oled.drawString(0, 2, line);
-  snprintf(line, sizeof(line), " Trim:%3d%%%s", (int)(smoothedTrim * 100.0f + 0.5f), potOk ? "    " : " FIX"); oled.drawString(0, 3, line);
-  snprintf(line, sizeof(line), " Stops H:%d E:%d", stops.home, stops.end); oled.drawString(0, 4, line);
-  oled.drawString(0, 5, " IP 192.168.4.1 ");
+  drawOledLine(0, "EQ-Plattform");
+  drawOledLine(1, translate(mode == MODE_JOG ? "Manuell fahren" : modeName()));
+  snprintf(line, sizeof(line), translate("Richt. %s %s"), trackForward ? "N" : "S",
+           trackRate == RATE_LUNAR ? translate("Mond") : "SID");
+  drawOledLine(2, line);
+  snprintf(line, sizeof(line), "Trim %3d%%%s", (int)(smoothedTrim * 100.0f + 0.5f), potOk ? "" : " FIX");
+  drawOledLine(3, line);
+  snprintf(line, sizeof(line), translate("Schalter H%d E%d"), stops.home, stops.end);
+  drawOledLine(4, line);
+  drawOledLine(5, "AP 192.168.4.1");
   const String homeIp = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : "";
-  snprintf(line, sizeof(line), "%-16s", homeIp.c_str()); oled.drawString(0, 6, line);
+  drawOledLine(6, homeIp.c_str());
 }
 
 void setup() {
   Serial.begin(115200);
   loadSettings();
+  Preferences languageStorage;
+  if (languageStorage.begin("eq-ui", true)) english = languageStorage.getBool("english", false);
 
   pinMode(PIN_STEP, OUTPUT);
   pinMode(PIN_DIR, OUTPUT);
@@ -1085,10 +1297,10 @@ void setup() {
   Wire.setClock(400000);
   oled.begin();
   oled.setI2CAddress(0x3C << 1);
-  oled.setFont(u8x8_font_chroma48medium8_r);
+  oled.setFont(u8x8_font_amstrad_cpc_extended_f);
   oled.clear();
-  oled.drawString(0, 0, " EQ Platform");
-  oled.drawString(0, 2, " WLAN startet...");
+  drawOledLine(0, "EQ-Plattform");
+  drawOledLine(2, translate("WLAN startet..."));
 
   WiFi.persistent(false);
   WiFi.mode(WIFI_AP_STA);
